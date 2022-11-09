@@ -20,23 +20,23 @@ generate_mgamma <- function(q, C, seed){
 }
 
 #'@export
-generate_data <- function(intercept, beta, X, q, rho, seed){
+generate_data <- function(INTERCEPT, BETA, X, Q, RHO, SEED){
 
     if(!is.matrix(X)){cat('Error: X must be a matrix!\n'); return(NULL)}
-    if(length(beta)!=ncol(X)){cat('Error: Dimensions of beta and X not compatible!\n'); return(NULL)}
-    if(rho < 0){cat('Error: rho must be non-negative!\n'); return(NULL)}
+    if(length(BETA)!=ncol(X)){cat('Error: Dimensions of beta and X not compatible!\n'); return(NULL)}
+    if(RHO < 0){cat('Error: rho must be non-negative!\n'); return(NULL)}
 
-    p <- length(intercept)
-    C <- generate_C(rho = rho, p = p)
+    p <- length(INTERCEPT)
+    C <- generate_C(rho = RHO, p = p)
     n <- nrow(X)
-    Z <- t(sapply(1:n, function(x) generate_mgamma(q, C, seed = seed + x)))
-    u <- t(sapply(1:n, function(i) exp(intercept + as.numeric(crossprod(beta, X[i,])))))
+    Z <- t(sapply(1:n, function(x) generate_mgamma(Q, C, seed = SEED + x)))
+    u <- t(sapply(1:n, function(i) exp(INTERCEPT+ as.numeric(crossprod(BETA, X[i,])))))
 
 
 
-    set.seed(seed)
+    set.seed(SEED)
     #Z2 <- matrix(rep(Z[1,], n), nrow = n, ncol =  p, byrow = T)
-    out <- modify2(Z, u, ~rpois(1, lambda = .x * .y))
+    out <- purrr::modify2(Z, u, ~rpois(1, lambda = .x * .y))
 
     return(out)
 }

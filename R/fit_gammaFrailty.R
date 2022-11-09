@@ -72,7 +72,7 @@ fit_gammaFrailty <- function(
 
         end_time <- Sys.time()
         out$time <- as.numeric(difftime(end_time, start_time, units = 'secs')[1])
-        message('\n3. Done! (', round(out$time,2),' secs)')
+        message('3. Done! (', round(out$time,2),' secs)')
         return(out)
     }
 
