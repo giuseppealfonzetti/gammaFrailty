@@ -33,7 +33,7 @@ repar_theta <- partorepar(theta)
 # check marginal of latent variables
 C <- generate_C(rho = rho, p = p)
 s <- 123
-Z <- t(sapply(1:n, function(x) generate_mgamma(q, C, seed = s + x)))
+Z <- t(sapply(1:n, function(x) generate_mgamma(q, C, SEED = s + x)))
 Z2 <- matrix(rep(Z[1,], n), nrow = n, ncol =  p, byrow = T)
 
 gg_density <- as_tibble(Z) %>%
@@ -270,50 +270,52 @@ diag(varList$var$var_tot)
 ##################
 #### libraries #####
 library(tidyverse)
-###### choose true model
+#### choose true model ####
 
-p <- 50
+p <- 12
 q <- 8
 
 xi <- 2/q
 rho <- .6
 
-m <- 2
-n <- 2000
+m <- 10
+n <- 1000
 int <- rep(log(4), p)#runif(p, 0, 1)
 b <- rep(0, m) #rnorm(m, 0, .5) #
+set.seed(1)
 X <- matrix(rbinom(m*n, 1, .5), n, m)#matrix(runif(m*n, 0, 1), n, m)
 theta <- c(xi, rho, b, int)
 repar_theta <- partorepar(theta)
 
 ##### generate the data ###
 dt <- generate_data(
-    intercept = int,
-    beta = b,
+    INTERCEPT = int,
+    BETA = b,
     X = X,
-    q = q,
-    rho = rho,
-    seed = 1
+    Q = q,
+    RHO = rho,
+    SEED = 1
 )
 
 ##### estimation ####
-par_init <- repar_theta + runif(length(repar_theta), -1, 1)
+set.seed(1); par_init <- repar_theta + runif(length(repar_theta), -1, 1)
 
 
 ctrl_scsd <- list(
-    MAXT = n,
-    BURN = 100,
-    STEPSIZE = .001,
+    MAXT = 5000,
+    BURN = 1000,
+    STEPSIZE = .002,
     #STEPSIZE0 = .0005,
     NU = 1,
-    SEED = 123
+    SEED = 1
 )
 
 
 ctrl_gd <- list(MAXT = n^.75,     STEPSIZE = .001)
 trajSub <- c(50, 100, 500, 1000)
+trajSub <- c(750, 1000, 2000, 3000, 5000)
 
-mean((repartopar(Opt0$theta_init)-theta)^2)
+mean((repartopar(par_init)-theta)^2)
 
 Opt_u <- fit_gammaFrailty(
     DATA_LIST = list('DATA' = dt, 'X' = X),
@@ -331,9 +333,10 @@ Opt_sgd <- fit_gammaFrailty(
     CPP_CONTROL = ctrl_scsd,
     VERBOSEFLAG= 0,
     INIT = par_init,
-    ITERATIONS_SUBSET = trajSub
+    ITERATIONS_SUBSET = NULL#trajSub
 )
 mean((repartopar(Opt_sgd$theta)-theta)^2)
+mean((Opt_sgd$theta-repar_theta)^2)
 
 Opt_scsd <- fit_gammaFrailty(
     DATA_LIST = list('DATA' = dt, 'X' = X),
@@ -341,9 +344,10 @@ Opt_scsd <- fit_gammaFrailty(
     CPP_CONTROL = ctrl_scsd,
     VERBOSEFLAG= 0,
     INIT = par_init,
-    ITERATIONS_SUBSET = trajSub
+    ITERATIONS_SUBSET = NULL
 )
 mean((repartopar(Opt_scsd$theta)-theta)^2)
+mean((Opt_scsd$theta-repar_theta)^2)
 
 Opt_gd <- fit_gammaFrailty(
     DATA_LIST = list('DATA' = dt, 'X' = X),
@@ -354,3 +358,167 @@ Opt_gd <- fit_gammaFrailty(
     ITERATIONS_SUBSET = trajSub
 )
 mean((repartopar(Opt_gd$theta)-theta)^2)
+
+sampleVar(
+    THETA = Opt_sgd$theta,
+    DATA = dt,
+    X = X,
+    NU = 1,
+    METHOD = 1,
+    RANGE = ctrl_scsd$MAXT-ctrl_scsd$BURN,
+    TOTFLAG = T,
+    PRINTFLAG = F
+)
+
+#### check hessian ####
+Rwrapper_ncl <- function(par){
+    ncl(par, dt, X)$nll
+}
+Rwrapper_ngr <- function(par){
+    ncl(par, dt, X)$ngradient
+}
+
+chosen_par <- Opt_sgd$fit$path_av_theta[1001,]#Opt_u$theta#par_init #
+chosen_par <- par_init
+chosen_par <- Opt_u$theta
+
+H <- sampleH(chosen_par, dt, X, INVERTFLAG = F)
+Hnum <- numDeriv::jacobian(Rwrapper_ngr, chosen_par)
+H2 <- H
+diag(H2) <- diag(Hnum)
+diag(H)
+diag(Hnum)
+Hnum %>% solve() %>% diag() %>% round(4)
+H2 %>% solve() %>% diag() %>% round(4)
+H %>% solve() %>% diag() %>% round(4)
+
+it <- 5000
+sgd_se <- sampleVar(
+    THETA = Opt_sgd$fit$path_av_theta[it,],
+    DATA = dt,
+    X = X,
+    NU = 1,
+    METHOD = 1,
+    RANGE = it-ctrl_scsd$BURN,
+    TOTFLAG = T,
+    PRINTFLAG = F
+)
+
+scsd_se <- sampleVar(
+    THETA = Opt_scsd$fit$path_av_theta[it,],
+    DATA = dt,
+    X = X,
+    NU = 1,
+    METHOD = 2,
+    RANGE = it-ctrl_scsd$BURN,
+    TOTFLAG = T,
+    PRINTFLAG = F
+)
+sgd_se$se$se_stoc
+scsd_se$se$se_stoc
+
+Hinv <- sampleH(Opt_scsd$fit$path_av_theta[it,], dt, X, INVERTFLAG = T)
+J <- sampleJ(Opt_scsd$fit$path_av_theta[it,], dt, X)
+(Hinv%*%J%*%Hinv/(it-ctrl_scsd$BURN)) %>% diag() %>% sqrt()
+(Hinv/(it-ctrl_scsd$BURN)) %>% diag() %>% sqrt()
+scsd_se$var$var_stoc %>% diag() %>% sqrt()
+H %>%  diag(); (scsd_se$var$var_stoc * (it-ctrl_scsd$BURN)) %>% diag()
+diag(J);diag(Hinv); diag(solve(Hinv))
+gg <- get_tidy_path(Opt_sgd, 'path_av_theta', F) %>%
+    mutate( mod = 'SGD') %>%
+    bind_rows(
+        get_tidy_path(Opt_scsd, 'path_av_theta', F) %>%
+            mutate( mod = 'SCSD')
+    ) %>%
+    mutate(
+        mse = map_dbl(path_av_theta, ~mean((.x-repar_theta)^2))
+    ) %>%
+    ggplot( aes(x = iter, y = (mse), col = mod))+
+    geom_line()+
+    geom_hline(yintercept = (mean((Opt_u$theta-repar_theta)^2)), linetype = 'dashed')+
+    theme_minimal()
+plotly::ggplotly(gg)
+
+vec <- 1:10
+{
+    start_time2 <- Sys.time()                                                 # Save starting time
+    ls2 <- pbapply::pblapply(vec, function(id){
+
+        # INTERCEPT <- int
+        # BETA <- b
+        # Q <- q
+        # RHO <- rho
+        # SEED <-id
+        # C <- generate_C(rho = RHO, p = p)
+        # set.seed(SEED)
+        # rmvn(SAMPLE_SIZE = Q, VAR = C)
+        #MASS::mvrnorm(n = Q, mu = rep(0, ncol(C)), Sigma = C)
+        #mvtnorm::rmvnorm(n = Q, sigma = C)
+        #out <- colMeans((rmvnorm(n = Q, sigma = C))^2)
+        #Z <- purrr::reduce(purrr::map(1:n, ~generate_mgamma(Q, C, seed = SEED + .x)), rbind)
+
+
+        data <- generate_data(
+            INTERCEPT = int,
+            BETA = b,
+            X = X[1:250,],
+            Q = q,
+            RHO = rho,
+            SEED = id
+        )
+
+        suppressMessages(
+            mod_obj <- fit_gammaFrailty(
+                DATA_LIST = list('DATA' = data, 'X' = X[1:250,]),
+                METHOD = 'SGD',
+                CPP_CONTROL = list(
+                    MAXT = 1000,
+                    BURN = 100,
+                    STEPSIZE = .001,
+                    NU = 1,
+                    SEED = id
+                ),
+                VERBOSEFLAG= 0,
+                INIT = par_init,
+                ITERATIONS_SUBSET = NULL,
+            )
+        )
+
+        return(C)
+    }, cl = 10)
+    end_time2 <- Sys.time()
+    time_diff2 <- end_time2 - start_time2
+    time_diff2
+
+}
+
+a <- t(sapply(1:n, function(x) generate_mgamma(q, C = generate_C(rho = rho, p = p), seed = 1 + x)))
+
+
+ sapply(1:n, function(x) generate_mgamma(q, C = generate_C(rho = rho, p = p), seed = 1 + x))
+
+
+
+generate_mgamma(q, C = generate_C(rho = rho, p = p), seed = 1 + 2)
+b <- reduce(map(1:n, ~generate_mgamma(q, C = generate_C(rho = rho, p = p), seed = 1 + .x)), rbind)
+
+
+a[1,]
+b[1,]
+
+c <- generate_C(rho = rho, p = p)
+a <- matrix(rnorm(q*p), p, q)
+t(t(chol(c))%*%a)
+
+dim <- 2
+sample_size <- 50000
+Var <- matrix(.3, dim, dim); diag(Var) <- 1
+sample <- t(t(chol(Var))%*%matrix(rnorm(dim*sample_size), dim, sample_size))
+cor(sample)
+sample0 <- mvtnorm::rmvnorm(sample_size, sigma = Var)
+cor(sample0)
+
+
+
+sample <- rmvn(sample_size, Var)
+cor(sample)

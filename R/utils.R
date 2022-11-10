@@ -1,3 +1,10 @@
+#'@export
+rmvn <- function(SAMPLE_SIZE, VAR){
+    dim <- ncol(VAR)
+    sample <- t(t(chol(VAR))%*%matrix(rnorm(dim*SAMPLE_SIZE), dim, SAMPLE_SIZE))
+
+    return(sample)
+}
 
 # theta reparameterisation
 #'@export
@@ -42,6 +49,26 @@ check_GD_args <- function(ARGS, N){
 
     if(is.null(ARGS$MAXT)) out$MAXT <- round(N^.75,0)
     if(is.null(ARGS$STEPSIZE)) out$STEPSIZE <- 1e-2
+
+    return(out)
+}
+
+#'@export
+get_tidy_path <- function(MOD_OBJ, PATH_LAB, USEREPARTOPAR){
+    iters <- MOD_OBJ$iterations_subset
+    path  <- MOD_OBJ$fit[[PATH_LAB]]
+
+    out <- dplyr::tibble(iter = iters) %>%
+        dplyr::mutate(
+            path_chosen = split(t(path), rep(1:nrow(path), each = ncol(path)))
+        )
+
+    if(USEREPARTOPAR){
+        out <- out %>%
+            mutate(path_chosen = map(path_chosen, ~repartopar(.x)))
+    }
+
+    colnames(out) <- c('iter', PATH_LAB)
 
     return(out)
 }
