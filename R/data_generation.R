@@ -1,13 +1,13 @@
 #### functions #####
 #'@export
-generate_C <- function(rho, p){
-    out <- diag(rep(1,p))
-    for (j in 2:p) {
+generate_C <- function(RHO, P){
+    out <- diag(rep(1,P))
+    for (j in 2:P) {
         for (k in 1:(j-1)) {
-            out[j,k] <- rho^(abs(j-k)/2)
+            out[j,k] <- RHO^(abs(j-k)/2)
         }
     }
-    out <- out+t(out)-diag(rep(1,p))
+    out <- out+t(out)-diag(rep(1,P))
 
     return(out)
 }
@@ -29,17 +29,18 @@ generate_data <- function(INTERCEPT, BETA, X, Q, RHO, SEED){
     if(RHO < 0){cat('Error: rho must be non-negative!\n'); return(NULL)}
 
     p <- length(INTERCEPT)
-    C <- generate_C(rho = RHO, p = p)
+    C <- generate_C(RHO = RHO, P = p)
     n <- nrow(X)
-    Z <- purrr::reduce(purrr::map(1:n, ~generate_mgamma(Q, C, SEED = SEED + .x)), rbind)
+    Z <- purrr::reduce(purrr::map(1:n, ~generate_mgamma(Q, C, SEED = SEED + .x)), rbind); rownames(Z) <- NULL
     u <- t(sapply(1:n, function(i) exp(INTERCEPT+ as.numeric(crossprod(BETA, X[i,])))))
 
 
 
     set.seed(SEED)
     #Z2 <- matrix(rep(Z[1,], n), nrow = n, ncol =  p, byrow = T)
-    out <- purrr::modify2(Z, u, ~rpois(1, lambda = .x * .y))
-    rownames(out) <- NULL
+    Zu <- Z*u
+
+    out <- apply(Zu, c(1, 2), function(x)rpois(1, lambda = x))
 
     return(out)
 }

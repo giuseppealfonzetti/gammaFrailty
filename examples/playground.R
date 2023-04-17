@@ -566,8 +566,8 @@ sim_settings <- expand_grid(
     mod = c('SGD', 'SCSD'),
     stepsize = c(1.25e-4, 2.5e-4, 5e-4),
     stoc_seed = 1:5,
-    maxiter = 2000,
-    burn = 200
+    maxiter = 5000,
+    burn = 500
 )
 
 custom_est_fun <- function(MOD, STEPSIZE, SEED, MAXT, BURN){
@@ -704,8 +704,8 @@ gg <- par_tab  %>%
     # ) %>%
     ggplot(aes(x = iter, y = val))+
     geom_line(aes(linetype = mod,  col = factor(stepsize), group = interaction(mod, stepsize, stoc_seed, par))) +
-    geom_point(data = num_tib, aes(x = 2000, y = num_val), col = 'red', shape = 4, size = 2)+
-    geom_point(data = true_tib, aes(x = 2020, y = true_val), col = 'blue', shape = 4, size = 2)+
+    geom_point(data = num_tib, aes(x = 5000, y = num_val), col = 'red', shape = 4, size = 2)+
+    geom_point(data = true_tib, aes(x = 5020, y = true_val), col = 'blue', shape = 4, size = 2)+
     facet_wrap(vars(par_type), scales = 'free') +
     theme_bw()+
     scale_color_viridis_d()

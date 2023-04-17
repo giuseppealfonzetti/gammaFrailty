@@ -121,8 +121,8 @@ Rcpp::List ncl(
 //' @export
 // [[Rcpp::export]]
 Rcpp::List gammaFrailty(
-        Eigen::Map<Eigen::VectorXd> THETA_INIT,
-        Eigen::Map<Eigen::MatrixXd> DATA,
+        Eigen::VectorXd THETA_INIT,
+        Eigen::MatrixXd DATA,
         const Eigen::MatrixXd X,
         const unsigned int MAXT,
         const unsigned int BURN,

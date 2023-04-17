@@ -50,13 +50,13 @@ BEGIN_RCPP
 END_RCPP
 }
 // gammaFrailty
-Rcpp::List gammaFrailty(Eigen::Map<Eigen::VectorXd> THETA_INIT, Eigen::Map<Eigen::MatrixXd> DATA, const Eigen::MatrixXd X, const unsigned int MAXT, const unsigned int BURN, const double STEPSIZE, const double STEPSIZE0, const double NU, const int METHODFLAG, const bool VERBOSEFLAG, const bool STEPSIZEFLAG);
+Rcpp::List gammaFrailty(Eigen::VectorXd THETA_INIT, Eigen::MatrixXd DATA, const Eigen::MatrixXd X, const unsigned int MAXT, const unsigned int BURN, const double STEPSIZE, const double STEPSIZE0, const double NU, const int METHODFLAG, const bool VERBOSEFLAG, const bool STEPSIZEFLAG);
 RcppExport SEXP _gammaFrailty_gammaFrailty(SEXP THETA_INITSEXP, SEXP DATASEXP, SEXP XSEXP, SEXP MAXTSEXP, SEXP BURNSEXP, SEXP STEPSIZESEXP, SEXP STEPSIZE0SEXP, SEXP NUSEXP, SEXP METHODFLAGSEXP, SEXP VERBOSEFLAGSEXP, SEXP STEPSIZEFLAGSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Eigen::Map<Eigen::VectorXd> >::type THETA_INIT(THETA_INITSEXP);
-    Rcpp::traits::input_parameter< Eigen::Map<Eigen::MatrixXd> >::type DATA(DATASEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type THETA_INIT(THETA_INITSEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type DATA(DATASEXP);
     Rcpp::traits::input_parameter< const Eigen::MatrixXd >::type X(XSEXP);
     Rcpp::traits::input_parameter< const unsigned int >::type MAXT(MAXTSEXP);
     Rcpp::traits::input_parameter< const unsigned int >::type BURN(BURNSEXP);
