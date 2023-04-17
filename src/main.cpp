@@ -31,7 +31,7 @@ Rcpp::List pair_wrapper(
 
 
     pair_class pair;
-    pair.setup(j, jp, n_j, n_jp, x, beta, alpha_j, alpha_jp, lxi, artanhrho, p);
+    pair.setup_(j, jp, n_j, n_jp, x, beta, alpha_j, alpha_jp, lxi, artanhrho, p);
     pair.compute_intermediate_( );
     pair.compute_dintermediate_(verboseS);
 
@@ -92,7 +92,7 @@ Rcpp::List ncl(
                 unsigned int n_jp = data(i, jp);
                 double alpha_jp = theta(r+2+jp);
 
-                pair.setup(j, jp, n_j, n_jp, x_i, beta, alpha_j, alpha_jp, lxi, artanhrho, p);
+                pair.setup_(j, jp, n_j, n_jp, x_i, beta, alpha_j, alpha_jp, lxi, artanhrho, p);
                 pair.compute_intermediate_( );
                 pair.compute_dintermediate_();
                 double ll = pair.compute_ll_()/n;
@@ -147,10 +147,14 @@ Rcpp::List gammaFrailty(
 
 
     Eigen::VectorXd stepsizeV(d); stepsizeV.fill(STEPSIZE); stepsizeV(0) = STEPSIZE0;
+
     // Initialize storage for iterations quantities
     Eigen::MatrixXd path_theta    = Eigen::MatrixXd::Zero(MAXT + 1, d); path_theta.row(0)    = THETA_INIT;
     Eigen::MatrixXd path_av_theta = Eigen::MatrixXd::Zero(MAXT + 1, d); path_av_theta.row(0) = THETA_INIT;
     Eigen::MatrixXd path_grad     = Eigen::MatrixXd::Zero(MAXT,     d);
+    std::vector<double> path_nll;
+
+    // std::vector<Rcpp::NumericMatrix> weights(MAXT+1);
 
     // Initialise generic pair-object: it will compute pairwise quantities along the optimisation
     pair_class pair;
@@ -178,6 +182,7 @@ Rcpp::List gammaFrailty(
         Rcpp::checkUserInterrupt();
         Rcpp::Rcout << "\rIteration:" << t << " ";
 
+        double nll = 0;
         /////////////////////
         // SAMPLING STEP   //
         /////////////////////
@@ -203,6 +208,8 @@ Rcpp::List gammaFrailty(
             break;
         }
 
+        // weights[t] = sampling_weights;
+        // Rcpp::Rcout<<"Iteration " << t << ", prob:" << prob << ", weight 1,1:" << sampling_weights(1, 1) << "\n";
 
         //////////////////
         /*   GRADIENT   */
@@ -238,10 +245,12 @@ Rcpp::List gammaFrailty(
                         unsigned int n_jp = DATA(i, jp);
                         double alpha_jp   = theta_t(r + 2 + jp);
 
-                        pair.setup(j, jp, n_j, n_jp, x_i, beta, alpha_j, alpha_jp, lxi, artanhrho, p);
+                        pair.setup_(j, jp, n_j, n_jp, x_i, beta, alpha_j, alpha_jp, lxi, artanhrho, p);
                         pair.compute_intermediate_( );
                         pair.compute_dintermediate_();
 
+                        double ll = pair.compute_ll_();
+                        nll -= ll;
                         ngradient_t -= weight * pair.compute_gradient_();
                     }
 
@@ -251,16 +260,18 @@ Rcpp::List gammaFrailty(
             }
         }
 
+        nll *= scale;
         ngradient_t *= scale;
         ///////////////////////////
         /*    PARAMETERS UPDATE  */
         ///////////////////////////
-
         if(STEPSIZEFLAG){
             Eigen::VectorXd stepsize_t = stepsizeV * pow(t, -.501);
             theta_t -= Eigen::VectorXd(stepsize_t.array() * ngradient_t.array());
         }else{
-            double stepsize_t = STEPSIZE * pow(t, -.501);
+            // double stepsize_t = STEPSIZE * pow(t, -.501);
+            double stepsize_t = STEPSIZE * pow(1 + 1*pow(STEPSIZE,2)*t, -.75);
+
             theta_t -= stepsize_t * ngradient_t;
         }
 
@@ -269,6 +280,7 @@ Rcpp::List gammaFrailty(
         /////////////////////////////////
         path_theta.row(t ) = theta_t;
         path_grad.row(t-1) = ngradient_t;
+        path_nll.push_back(nll);
 
         // averaging after burnsize
         if(t <= BURN){
@@ -287,8 +299,10 @@ Rcpp::List gammaFrailty(
         Rcpp::Named("path_theta") = path_theta,
         Rcpp::Named("path_av_theta") = path_av_theta,
         Rcpp::Named("path_grad") = path_grad,
+        Rcpp::Named("path_nll") = path_nll,
         Rcpp::Named("scale") = scale,
         Rcpp::Named("n") = n,
+        // Rcpp::Named("weights") = weights,
         Rcpp::Named("methodflag") = METHODFLAG
     );
 

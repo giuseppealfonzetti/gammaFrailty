@@ -20,7 +20,7 @@ knitr::opts_chunk$set(
 [![CRAN status](https://www.r-pkg.org/badges/version/gammaFrailty)](https://CRAN.R-project.org/package=gammaFrailty)
 <!-- badges: end -->
 
-The gammaFrailty package allows the estimation of serially correlated Gamma-frailty models for count data as described in Henderson & Shimakura (2003). 
+The gammaFrailty package allows the estimation of serially correlated Gamma-frailty models for count data as described in [Henderson & Shimakura (2003)](https://academic.oup.com/biomet/article/90/2/355/241234). 
 
 ## Installation
 
@@ -33,7 +33,7 @@ devtools::install_github("giuseppealfonzetti/gammaFrailty")
 
 ## Example
 
-Simple illustrative setting taken from Henderson & Shimakura (2003)
+Simple illustrative setting taken from [Henderson & Shimakura (2003)](https://academic.oup.com/biomet/article/90/2/355/241234)
 
 ```{r example}
 library(gammaFrailty)

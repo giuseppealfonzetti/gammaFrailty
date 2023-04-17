@@ -20,12 +20,12 @@ Xb <- X%*%b
 cbind(id=1:n,Xb)[which.max(Xb),]
 
 dt <- generate_data(
-    intercept = int,
-    beta = b,
+    INTERCEPT = int,
+    BETA = b,
     X = X,
-    q = q,
-    rho = rho,
-    seed = 1
+    Q = q,
+    RHO = rho,
+    SEED = seed
 )
 
 theta <- c(eps, rho, b, int)
@@ -33,7 +33,7 @@ repar_theta <- partorepar(theta)
 # check marginal of latent variables
 C <- generate_C(rho = rho, p = p)
 s <- 123
-Z <- t(sapply(1:n, function(x) generate_mgamma(q, C, SEED = s + x)))
+Z <- t(sapply(1:n, function(x) generate_mgamma(q, C, seed = s + x)))
 Z2 <- matrix(rep(Z[1,], n), nrow = n, ncol =  p, byrow = T)
 
 gg_density <- as_tibble(Z) %>%
@@ -79,8 +79,8 @@ plotly::ggplotly(gg_density, dynamicTicks = T)
 dt
 
 i <- 1
-j <- 0
-jp <- 1
+j <- 2
+jp <- 0
 n_j <- dt[i + 1, j+1]
 n_jp <- dt[i + 1, jp+1]
 p
@@ -130,9 +130,11 @@ Rwrapper_obj_der(repar_theta)
 
 ncl(theta, dt, X, T)
 
+
 Rwrapper_ncl <- function(par){
     ncl(par, dt, X)$nll
 }
+
 Rwrapper_ngr <- function(par){
     ncl(par, dt, X)$ngradient
 }
@@ -280,13 +282,14 @@ rho <- .6
 
 m <- 10
 n <- 1000
-int <- rep(log(4), p)#runif(p, 0, 1)
-b <- rep(0, m) #rnorm(m, 0, .5) #
+int <- runif(p, -.5, .5)#rep(.5, p)#
+b <- rnorm(m, 0, .5) #runif(m,0,.5)#rep(0, m) #
 set.seed(1)
 X <- matrix(rbinom(m*n, 1, .5), n, m)#matrix(runif(m*n, 0, 1), n, m)
 theta <- c(xi, rho, b, int)
 repar_theta <- partorepar(theta)
 
+seed <- 3
 ##### generate the data ###
 dt <- generate_data(
     INTERCEPT = int,
@@ -294,50 +297,76 @@ dt <- generate_data(
     X = X,
     Q = q,
     RHO = rho,
-    SEED = 1
+    SEED = seed
 )
 
 ##### estimation ####
 set.seed(1); par_init <- repar_theta + runif(length(repar_theta), -1, 1)
 
 
-ctrl_scsd <- list(
-    MAXT = 5000,
-    BURN = 1000,
-    STEPSIZE = .002,
-    #STEPSIZE0 = .0005,
-    NU = 1,
-    SEED = 1
-)
 
 
 ctrl_gd <- list(MAXT = n^.75,     STEPSIZE = .001)
 trajSub <- c(50, 100, 500, 1000)
-trajSub <- c(750, 1000, 2000, 3000, 5000)
+trajSub <- c(750, 1000, 2000, 3000, 5000, 7500, 10000)
 
-mean((repartopar(par_init)-theta)^2)
-
+mean((par_init-repar_theta)^2)
+H0 <- sampleH(THETA = par_init, DATA = dt, X = X, F, F)
 Opt_u <- fit_gammaFrailty(
     DATA_LIST = list('DATA' = dt, 'X' = X),
     METHOD = 'ucminf',
-    CPP_CONTROL = ctrl,
+    CPP_CONTROL = list(),
+    #UCMINF_CONTROL = list('ctrl' = list(invhessian.lt = solve(H0)[lower.tri(H0,diag=TRUE)]), 'hessian' = 0),
     VERBOSEFLAG= 0,
     INIT = par_init,
-    ITERATIONS_SUBSET = trajSub
+    ITERATIONS_SUBSET = NULL
 )
-mean((repartopar(Opt_u$theta)-theta)^2)
+mean((Opt_u$theta-repar_theta)^2)
 
+sgd_var <- sampleVar(
+    THETA = repar_theta,
+    DATA = dt,
+    X = X,
+    NU = 1,
+    METHOD = 2,
+    RANGE = ctrl_scsd$MAXT-ctrl_scsd$BURN,
+    TOTFLAG = T,
+    PRINTFLAG = F
+)
+eig <- eigen(solve(sgd_var$var$var_stoc))$values
+ 2/max(eig) ;1/(2*min(eig));
+ctrl_sgd <- list(
+    MAXT = 1000,
+    BURN = 200,
+    STEPSIZE = 0.0001265499,
+    #STEPSIZE0 = .0005,
+    NU = 1,
+    SEED = seed
+)
 Opt_sgd <- fit_gammaFrailty(
     DATA_LIST = list('DATA' = dt, 'X' = X),
     METHOD = 'SGD',
-    CPP_CONTROL = ctrl_scsd,
+    CPP_CONTROL = ctrl_sgd,
     VERBOSEFLAG= 0,
     INIT = par_init,
     ITERATIONS_SUBSET = NULL#trajSub
 )
-mean((repartopar(Opt_sgd$theta)-theta)^2)
+#mean((repartopar(Opt_sgd$theta)-theta)^2)
 mean((Opt_sgd$theta-repar_theta)^2)
+#Opt_sgd$fit$path_av_theta
+dim(Opt_sgd$fit$path_theta)
+length(Opt_sgd$fit$path_nll)
+Rwrapper_ncl(Opt_sgd$theta_init)
+Rwrapper_ncl(Opt_sgd$theta)
 
+ctrl_scsd <- list(
+    MAXT = 1000,
+    BURN = 200,
+    STEPSIZE = 5e-4,
+    #STEPSIZE0 = .0005,
+    NU = 1,
+    SEED = seed
+)
 Opt_scsd <- fit_gammaFrailty(
     DATA_LIST = list('DATA' = dt, 'X' = X),
     METHOD = 'SCSD',
@@ -346,179 +375,375 @@ Opt_scsd <- fit_gammaFrailty(
     INIT = par_init,
     ITERATIONS_SUBSET = NULL
 )
-mean((repartopar(Opt_scsd$theta)-theta)^2)
+#mean((repartopar(Opt_scsd$theta)-theta)^2)
 mean((Opt_scsd$theta-repar_theta)^2)
+Opt_scsd$fit
 
-Opt_gd <- fit_gammaFrailty(
-    DATA_LIST = list('DATA' = dt, 'X' = X),
-    METHOD = 'GD',
-    CPP_CONTROL = ctrl_gd,
-    VERBOSEFLAG= 0,
-    INIT = par_init,
-    ITERATIONS_SUBSET = trajSub
-)
-mean((repartopar(Opt_gd$theta)-theta)^2)
 
-sampleVar(
-    THETA = Opt_sgd$theta,
-    DATA = dt,
-    X = X,
-    NU = 1,
-    METHOD = 1,
-    RANGE = ctrl_scsd$MAXT-ctrl_scsd$BURN,
-    TOTFLAG = T,
-    PRINTFLAG = F
-)
+# test <- Opt
+# #ncl(par_init, dt, X, T)
+# Opt_u$theta
+# test$theta
+# sum(Opt_scsd$fit$weights[[2]]!=0)
+# sum(Opt_scsd$fit$weights[[2]] == Opt_scsd$fit$weights[[3]])
+# which(Opt_scsd$fit$weights[[2]]!=0, arr.ind = T)
+# which(Opt_scsd$fit$weights[[4]]!=0, arr.ind = T)
 
-#### check hessian ####
-Rwrapper_ncl <- function(par){
-    ncl(par, dt, X)$nll
-}
-Rwrapper_ngr <- function(par){
-    ncl(par, dt, X)$ngradient
-}
+# Opt_gd <- fit_gammaFrailty(
+#     DATA_LIST = list('DATA' = dt, 'X' = X),
+#     METHOD = 'GD',
+#     CPP_CONTROL = ctrl_gd,
+#     VERBOSEFLAG= 0,
+#     INIT = par_init,
+#     ITERATIONS_SUBSET = trajSub
+# )
+# mean((repartopar(Opt_gd$theta)-theta)^2)
 
-chosen_par <- Opt_sgd$fit$path_av_theta[1001,]#Opt_u$theta#par_init #
-chosen_par <- par_init
-chosen_par <- Opt_u$theta
-
-H <- sampleH(chosen_par, dt, X, INVERTFLAG = F)
-Hnum <- numDeriv::jacobian(Rwrapper_ngr, chosen_par)
-H2 <- H
-diag(H2) <- diag(Hnum)
-diag(H)
-diag(Hnum)
-Hnum %>% solve() %>% diag() %>% round(4)
-H2 %>% solve() %>% diag() %>% round(4)
-H %>% solve() %>% diag() %>% round(4)
-
-it <- 5000
-sgd_se <- sampleVar(
-    THETA = Opt_sgd$fit$path_av_theta[it,],
-    DATA = dt,
-    X = X,
-    NU = 1,
-    METHOD = 1,
-    RANGE = it-ctrl_scsd$BURN,
-    TOTFLAG = T,
-    PRINTFLAG = F
-)
-
-scsd_se <- sampleVar(
-    THETA = Opt_scsd$fit$path_av_theta[it,],
-    DATA = dt,
-    X = X,
-    NU = 1,
-    METHOD = 2,
-    RANGE = it-ctrl_scsd$BURN,
-    TOTFLAG = T,
-    PRINTFLAG = F
-)
-sgd_se$se$se_stoc
-scsd_se$se$se_stoc
-
-Hinv <- sampleH(Opt_scsd$fit$path_av_theta[it,], dt, X, INVERTFLAG = T)
-J <- sampleJ(Opt_scsd$fit$path_av_theta[it,], dt, X)
-(Hinv%*%J%*%Hinv/(it-ctrl_scsd$BURN)) %>% diag() %>% sqrt()
-(Hinv/(it-ctrl_scsd$BURN)) %>% diag() %>% sqrt()
-scsd_se$var$var_stoc %>% diag() %>% sqrt()
-H %>%  diag(); (scsd_se$var$var_stoc * (it-ctrl_scsd$BURN)) %>% diag()
-diag(J);diag(Hinv); diag(solve(Hinv))
-gg <- get_tidy_path(Opt_sgd, 'path_av_theta', F) %>%
+# sampleVar(
+#     THETA = Opt_sgd$theta,
+#     DATA = dt,
+#     X = X,
+#     NU = 1,
+#     METHOD = 1,
+#     RANGE = ctrl_scsd$MAXT-ctrl_scsd$BURN,
+#     TOTFLAG = T,
+#     PRINTFLAG = F
+# )
+#
+# #### check hessian ####
+# Rwrapper_ncl <- function(par){
+#     ncl(par, dt, X)$nll
+# }
+# Rwrapper_ngr <- function(par){
+#     ncl(par, dt, X)$ngradient
+# }
+#
+# chosen_par <- Opt_sgd$fit$path_av_theta[1001,]#Opt_u$theta#par_init #
+# chosen_par <- par_init
+# chosen_par <- Opt_u$theta
+#
+# H <- sampleH(chosen_par, dt, X, INVERTFLAG = F)
+# Hnum <- numDeriv::jacobian(Rwrapper_ngr, chosen_par)
+# H2 <- H
+# diag(H2) <- diag(Hnum)
+# diag(H)
+# diag(Hnum)
+# Hnum %>% solve() %>% diag() %>% round(4)
+# H2 %>% solve() %>% diag() %>% round(4)
+# H %>% solve() %>% diag() %>% round(4)
+#
+# it <- 5000
+# sgd_se <- sampleVar(
+#     THETA = Opt_sgd$fit$path_av_theta[it,],
+#     DATA = dt,
+#     X = X,
+#     NU = 1,
+#     METHOD = 1,
+#     RANGE = it-ctrl_scsd$BURN,
+#     TOTFLAG = T,
+#     PRINTFLAG = F
+# )
+#
+# scsd_se <- sampleVar(
+#     THETA = Opt_scsd$fit$path_av_theta[it,],
+#     DATA = dt,
+#     X = X,
+#     NU = 1,
+#     METHOD = 2,
+#     RANGE = it-ctrl_scsd$BURN,
+#     TOTFLAG = T,
+#     PRINTFLAG = F
+# )
+# sgd_se$se$se_stoc
+# scsd_se$se$se_stoc
+#
+# Hinv <- sampleH(Opt_scsd$fit$path_av_theta[it,], dt, X, INVERTFLAG = T)
+# J <- sampleJ(Opt_scsd$fit$path_av_theta[it,], dt, X)
+# (Hinv%*%J%*%Hinv/(it-ctrl_scsd$BURN)) %>% diag() %>% sqrt()
+# (Hinv/(it-ctrl_scsd$BURN)) %>% diag() %>% sqrt()
+# scsd_se$var$var_stoc %>% diag() %>% sqrt()
+# H %>%  diag(); (scsd_se$var$var_stoc * (it-ctrl_scsd$BURN)) %>% diag()
+# diag(J);diag(Hinv); diag(solve(Hinv))
+lab <- 'path_av_theta'
+gg <- get_tidy_path(Opt_sgd, lab, F) %>%
     mutate( mod = 'SGD') %>%
     bind_rows(
-        get_tidy_path(Opt_scsd, 'path_av_theta', F) %>%
+        get_tidy_path(Opt_scsd, lab, F) %>%
             mutate( mod = 'SCSD')
     ) %>%
     mutate(
         mse = map_dbl(path_av_theta, ~mean((.x-repar_theta)^2))
     ) %>%
-    ggplot( aes(x = iter, y = (mse), col = mod))+
+    ggplot( aes(x = iter, y = log(mse), col = mod))+
     geom_line()+
-    geom_hline(yintercept = (mean((Opt_u$theta-repar_theta)^2)), linetype = 'dashed')+
-    theme_minimal()
+    geom_hline(yintercept = log(mean((Opt_u$theta-repar_theta)^2)), linetype = 'dashed')+
+    theme_bw()+
+    scale_color_viridis_d()
 plotly::ggplotly(gg)
 
-vec <- 1:10
-{
-    start_time2 <- Sys.time()                                                 # Save starting time
-    ls2 <- pbapply::pblapply(vec, function(id){
+lab <- 'path_nll'
+get_tidy_path(Opt_sgd, lab, F) %>%
+    mutate( mod = 'SGD') %>%
+    bind_rows(
+        get_tidy_path(Opt_scsd, lab, F) %>%
+            mutate( mod = 'SCSD')
+    )%>%
+    ggplot( aes(x = iter, y = path_nll, col = mod))+
+    geom_line()+
+    #geom_hline(yintercept = log(mean((Opt_u$theta-repar_theta)^2)), linetype = 'dashed')+
+    theme_bw()+
+    scale_color_viridis_d()
 
-        # INTERCEPT <- int
-        # BETA <- b
-        # Q <- q
-        # RHO <- rho
-        # SEED <-id
-        # C <- generate_C(rho = RHO, p = p)
-        # set.seed(SEED)
-        # rmvn(SAMPLE_SIZE = Q, VAR = C)
-        #MASS::mvrnorm(n = Q, mu = rep(0, ncol(C)), Sigma = C)
-        #mvtnorm::rmvnorm(n = Q, sigma = C)
-        #out <- colMeans((rmvnorm(n = Q, sigma = C))^2)
-        #Z <- purrr::reduce(purrr::map(1:n, ~generate_mgamma(Q, C, seed = SEED + .x)), rbind)
+lab <- 'path_grad'
+get_tidy_path(Opt_sgd, lab, F) %>%
+    mutate( mod = 'SGD') %>%
+    bind_rows(
+        get_tidy_path(Opt_scsd, lab, F) %>%
+            mutate( mod = 'SCSD')
+    )%>%
+    mutate(
+        grad_norm = map_dbl(path_grad, ~norm(as.matrix(.x)))
+    ) %>%
+    ggplot( aes(x = iter, y = grad_norm, col = mod))+
+    geom_line()+
+    #geom_hline(yintercept = log(mean((Opt_u$theta-repar_theta)^2)), linetype = 'dashed')+
+    theme_bw()+
+    scale_color_viridis_d()
+
+get_tidy_path(Opt_sgd, lab, F) %>%
+    mutate( mod = 'SGD') %>%
+    bind_rows(
+        get_tidy_path(Opt_scsd, lab, F) %>%
+            mutate( mod = 'SCSD')
+    )%>%
+    mutate(
+        grad_norm = map_dbl(path_grad, ~norm(as.matrix(.x)))
+    ) %>%
+    filter(iter == 1)
 
 
-        data <- generate_data(
-            INTERCEPT = int,
-            BETA = b,
-            X = X[1:250,],
-            Q = q,
-            RHO = rho,
-            SEED = id
-        )
 
-        suppressMessages(
-            mod_obj <- fit_gammaFrailty(
-                DATA_LIST = list('DATA' = data, 'X' = X[1:250,]),
-                METHOD = 'SGD',
-                CPP_CONTROL = list(
-                    MAXT = 1000,
-                    BURN = 100,
-                    STEPSIZE = .001,
-                    NU = 1,
-                    SEED = id
-                ),
-                VERBOSEFLAG= 0,
-                INIT = par_init,
-                ITERATIONS_SUBSET = NULL,
-            )
-        )
 
-        return(C)
-    }, cl = 10)
-    end_time2 <- Sys.time()
-    time_diff2 <- end_time2 - start_time2
-    time_diff2
+#############
+ctrl_sgd <- list(
+    MAXT = 1000,
+    BURN = 200,
+    STEPSIZE = 0.0001265499,
+    #STEPSIZE0 = .0005,
+    NU = 1,
+    SEED = seed
+)
+Opt_sgd <- fit_gammaFrailty(
+    DATA_LIST = list('DATA' = dt, 'X' = X),
+    METHOD = 'SGD',
+    CPP_CONTROL = ctrl_sgd,
+    VERBOSEFLAG= 0,
+    INIT = par_init,
+    ITERATIONS_SUBSET = NULL#trajSub
+)
+#mean((repartopar(Opt_sgd$theta)-theta)^2)
+mean((Opt_sgd$theta-repar_theta)^2)
+#Opt_sgd$fit$path_av_theta
+dim(Opt_sgd$fit$path_theta)
+length(Opt_sgd$fit$path_nll)
 
+
+
+
+######## simulation test #######
+set.seed(1); par_init <- repar_theta + runif(length(repar_theta), -1, 1)
+Opt_u <- fit_gammaFrailty(
+    DATA_LIST = list('DATA' = dt, 'X' = X),
+    METHOD = 'ucminf',
+    CPP_CONTROL = list(),
+    #UCMINF_CONTROL = list('ctrl' = list(invhessian.lt = solve(H0)[lower.tri(H0,diag=TRUE)]), 'hessian' = 0),
+    VERBOSEFLAG= 0,
+    INIT = par_init,
+    ITERATIONS_SUBSET = NULL
+)
+library(tidyverse)
+sim_settings <- expand_grid(
+    mod = c('SGD', 'SCSD'),
+    stepsize = c(1.25e-4, 2.5e-4, 5e-4),
+    stoc_seed = 1:5,
+    maxiter = 2000,
+    burn = 200
+)
+
+custom_est_fun <- function(MOD, STEPSIZE, SEED, MAXT, BURN){
+    ctrl <- list(
+        MAXT = MAXT,
+        BURN = BURN,
+        STEPSIZE = STEPSIZE,
+        NU = 1,
+        SEED = SEED
+    )
+    mod_obj <- fit_gammaFrailty(
+        DATA_LIST = list('DATA' = dt, 'X' = X),
+        METHOD = MOD,
+        CPP_CONTROL = ctrl,
+        VERBOSEFLAG= 0,
+        INIT = par_init,
+        ITERATIONS_SUBSET = NULL#trajSub
+    )
+
+    return(mod_obj)
 }
 
-a <- t(sapply(1:n, function(x) generate_mgamma(q, C = generate_C(rho = rho, p = p), seed = 1 + x)))
+#custom_est_fun(MOD = 'SGD', STEPSIZE=1.25e-4, SEED = 123, MAXT = 1000, BURN = 200)
+est_tab <- sim_settings %>%
+    mutate(
+        mod_obj = pmap(
+            list(mod, stepsize, stoc_seed, maxiter, burn),
+            function(mod_, stepsize_, stoc_seed_, maxiter_, burn_){
+                custom_est_fun(
+                    MOD = mod_,
+                    STEPSIZE = stepsize_,
+                    SEED = stoc_seed_,
+                    MAXT = maxiter_,
+                    BURN = burn_)
+            }
+            )
+    )
 
 
- sapply(1:n, function(x) generate_mgamma(q, C = generate_C(rho = rho, p = p), seed = 1 + x))
+metrics_tab <- est_tab %>%
+    mutate(
+        path_av_theta = map(mod_obj, ~get_tidy_path(.x, 'path_av_theta', F)),
+        path_nll = map(mod_obj, ~get_tidy_path(.x, 'path_nll', F)),
+        path_grad = map(mod_obj, ~get_tidy_path(.x, 'path_grad', F))
+    ) %>%
+    select(-mod_obj) %>%
+    mutate(
+        metrics = pmap(
+            list(path_av_theta, path_nll, path_grad),
+            function(path_av_theta_, path_nll_, path_grad_){
+                path_av_theta_ %>%
+                    left_join(path_nll_, by = 'iter') %>%
+                    left_join(path_grad_, by = 'iter')
+            }
+        )
+    ) %>%
+    select(-c(path_av_theta, path_nll, path_grad)) %>%
+    unnest(c(metrics)) %>%
+    mutate(
+        mse = map_dbl(path_av_theta, ~mean((.x-repar_theta)^2)),
+        grad_norm = map_dbl(path_grad, ~norm(as.matrix(.x)))
+    ) %>%
+    gather(key = 'performance', value = 'val', path_nll, grad_norm, mse)
+
+gg <- metrics_tab %>%
+    ggplot( aes(x = iter, y = val, col = factor(stepsize), group = interaction(mod, stepsize, stoc_seed)))+
+    geom_line(aes(linetype = mod))+
+    #geom_hline(yintercept = log(mean((Opt_u$theta-repar_theta)^2)), linetype = 'dashed')+
+    facet_wrap(vars(performance), scales = 'free')+
+    theme_bw()+
+    scale_color_viridis_d()
+plotly::ggplotly(gg, dynamicTicks = T)
+
+########
+name_par <- function(par){
+    if(par == 1)
+        'xi'
+    else if(par == 2)
+        'correlation'
+    else if(par %in% 3:(2+m))
+        'regression coefficients'
+    else
+        'intercepts'
+}
+true_tib <- tibble(
+    par = 1:length(repar_theta), true_val = repar_theta
+) %>%
+    mutate(
+    par_type = map_chr(par, ~name_par(.x)),
+    par = as.factor(par))
+    # ) %>%
+    # mutate(
+    #     true_val = map2_dbl(par, true_val, ~if(.x==2){rofz_cpp(.y)}else{.y}),
+    #     true_val = map2_dbl(par, true_val, ~if(.x==1){exp(-.y)}else{.y})
+    #     )
+
+num_tib <- tibble(
+    par = 1:length(repar_theta), num_val = Opt_u$theta
+)%>%
+    mutate(
+        par_type = map_chr(par, ~name_par(.x)),
+        par = as.factor(par))
+    # ) %>%
+    # mutate(
+    #     num_val = map2_dbl(par, num_val, ~if(.x==2){rofz_cpp(.y)}else{.y}),
+    #     num_val = map2_dbl(par, num_val, ~if(.x==1){exp(-.y)}else{.y})
+    # )
+
+par_tab <- est_tab %>%
+    mutate(
+        path_av_theta = map(mod_obj, ~get_tidy_path(.x, 'path_av_theta', F))
+    ) %>%
+    unnest(c(path_av_theta)) %>%
+    mutate(
+        path_av_theta = lapply(path_av_theta, function(x){
+            tib <- tibble(
+                par = 1:length(x),
+                val = x
+            )
+            tib
+        })
+    ) %>%
+    unnest(c(path_av_theta)) %>%
+    mutate(
+        par_type = map_chr(par, ~name_par(.x)),
+        par = as.factor(par)
+    )
 
 
-
-generate_mgamma(q, C = generate_C(rho = rho, p = p), seed = 1 + 2)
-b <- reduce(map(1:n, ~generate_mgamma(q, C = generate_C(rho = rho, p = p), seed = 1 + .x)), rbind)
-
-
-a[1,]
-b[1,]
-
-c <- generate_C(rho = rho, p = p)
-a <- matrix(rnorm(q*p), p, q)
-t(t(chol(c))%*%a)
-
-dim <- 2
-sample_size <- 50000
-Var <- matrix(.3, dim, dim); diag(Var) <- 1
-sample <- t(t(chol(Var))%*%matrix(rnorm(dim*sample_size), dim, sample_size))
-cor(sample)
-sample0 <- mvtnorm::rmvnorm(sample_size, sigma = Var)
-cor(sample0)
+gg <- par_tab  %>%
+    # mutate(
+    #     val = map2_dbl(par, val, ~if(.x==2){rofz_cpp(.y)}else{.y}),
+    #     val = map2_dbl(par, val, ~if(.x==1){exp(-.y)}else{.y})
+    # ) %>%
+    ggplot(aes(x = iter, y = val))+
+    geom_line(aes(linetype = mod,  col = factor(stepsize), group = interaction(mod, stepsize, stoc_seed, par))) +
+    geom_point(data = num_tib, aes(x = 2000, y = num_val), col = 'red', shape = 4, size = 2)+
+    geom_point(data = true_tib, aes(x = 2020, y = true_val), col = 'blue', shape = 4, size = 2)+
+    facet_wrap(vars(par_type), scales = 'free') +
+    theme_bw()+
+    scale_color_viridis_d()
+gg
+plotly::ggplotly(gg, dynamicTicks = T)
 
 
+av_par_tab <- est_tab %>%
+    mutate(
+        path_av_theta = map(mod_obj, ~get_tidy_path(.x, 'path_av_theta', F))
+    ) %>%
+    unnest(c(path_av_theta)) %>%
+    mutate(
+        path_av_theta = lapply(path_av_theta, function(x){
+            tib <- tibble(
+                par = 1:length(x),
+                val = x
+            )
+            tib
+        })
+    ) %>%
+    unnest(c(path_av_theta)) %>%
+    select(mod, stepsize, iter, par, val) %>%
+    group_by(mod, stepsize, iter, par) %>%
+        summarise(av_val = mean(val)) %>%
+    mutate(
+        par_type = map_chr(par, ~name_par(.x)),
+        par = as.factor(par)
+    )
 
-sample <- rmvn(sample_size, Var)
-cor(sample)
+gg1 <- av_par_tab  %>%
+    ggplot(aes(x = iter, y = av_val))+
+    geom_line(aes(linetype = mod,  col = factor(stepsize), group = interaction(mod, stepsize, par))) +
+    geom_point(data = num_tib, aes(x = 2000, y = num_val), col = 'red', shape = 4, size = 2)+
+    geom_point(data = true_tib, aes(x = 2020, y = true_val), col = 'blue', shape = 4, size = 2)+
+    facet_wrap(vars(par_type), scales = 'free') +
+    theme_bw()+
+    scale_color_viridis_d()
+
+gg1
+plotly::ggplotly(gg1, dynamicTicks = T)

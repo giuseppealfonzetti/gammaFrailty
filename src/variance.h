@@ -36,7 +36,7 @@ Eigen::MatrixXd sampleJ(
                 const unsigned int n_jp = DATA(i, jp);
                 const double alpha_jp = THETA(r+2+jp);
 
-                pair.setup(j, jp, n_j, n_jp, x_i, beta, alpha_j, alpha_jp, lxi, artanhrho, p);
+                pair.setup_(j, jp, n_j, n_jp, x_i, beta, alpha_j, alpha_jp, lxi, artanhrho, p);
                 pair.compute_intermediate_( );
                 pair.compute_dintermediate_();
                 const double ll = pair.compute_ll_()/n;
@@ -89,7 +89,7 @@ Eigen::MatrixXd sampleH(
                 const unsigned int n_jp = DATA(i, jp);
                 const double alpha_jp = THETA(r+2+jp);
 
-                pair.setup(j, jp, n_j, n_jp, x_i, beta, alpha_j, alpha_jp, lxi, artanhrho, p);
+                pair.setup_(j, jp, n_j, n_jp, x_i, beta, alpha_j, alpha_jp, lxi, artanhrho, p);
                 pair.compute_intermediate_( );
                 pair.compute_dintermediate_();
                 const double ll = pair.compute_ll_()/n;
@@ -126,7 +126,6 @@ Rcpp::List sampleVar(
         const unsigned int RANGE,
         const bool TOTFLAG,
         const bool PRINTFLAG
-
 ){
 
     // Identify dimensions

@@ -58,10 +58,24 @@ get_tidy_path <- function(MOD_OBJ, PATH_LAB, USEREPARTOPAR){
     iters <- MOD_OBJ$iterations_subset
     path  <- MOD_OBJ$fit[[PATH_LAB]]
 
-    out <- dplyr::tibble(iter = iters) %>%
-        dplyr::mutate(
-            path_chosen = split(t(path), rep(1:nrow(path), each = ncol(path)))
-        )
+    if(PATH_LAB%in%c('path_nll')){
+        out <- dplyr::tibble(iter = iters) %>%
+            dplyr::mutate(
+                path_chosen = c(path,NA)
+            )
+    }else if(PATH_LAB%in%c('path_grad')){
+        out <- dplyr::tibble(iter = iters) %>%
+            dplyr::mutate(
+                path_chosen = split(t(rbind(path, rep(NA, ncol(path)))), rep(1:(nrow(path)+1), each = ncol(path)))
+            )
+
+    }else{
+        out <- dplyr::tibble(iter = iters) %>%
+            dplyr::mutate(
+                path_chosen = split(t(path), rep(1:nrow(path), each = ncol(path)))
+            )
+    }
+
 
     if(USEREPARTOPAR){
         out <- out %>%

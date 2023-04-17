@@ -38,13 +38,9 @@ fit_gammaFrailty <- function(
             out$theta_init <-  rep(0, d)
     }
 
-
-
-
     # Check if method entry is correct
     if(!(METHOD %in% c('ucminf','GD', 'SGD', 'SCSD'))) stop('Method not available.')
     out$method <- METHOD
-
 
     # Numerical optimisation
     if(METHOD == 'ucminf'){
@@ -66,6 +62,7 @@ fit_gammaFrailty <- function(
 
         # optimisation
         opt <- do.call(ucminf::ucminf, args)
+        out$fit <- opt
 
         out$control <- UCMINF_CONTROL
         out$theta   <- opt$par
@@ -112,6 +109,7 @@ fit_gammaFrailty <- function(
         fit$path_theta    <- fit$path_theta[out$iterations_subset + 1,]
         fit$path_av_theta <- fit$path_av_theta[out$iterations_subset + 1,]
         fit$path_grad     <- fit$path_grad[out$iterations_subset,]
+        #fit$path_nll      <- fit$path_nll[out$iterations_subset[-1]-1,]
 
         fit$methodflag <- NULL
 

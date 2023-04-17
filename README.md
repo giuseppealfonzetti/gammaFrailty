@@ -12,8 +12,9 @@ status](https://www.r-pkg.org/badges/version/gammaFrailty)](https://CRAN.R-proje
 <!-- badges: end -->
 
 The gammaFrailty package allows the estimation of serially correlated
-Gamma-frailty models for count data as described in Henderson &
-Shimakura (2003).
+Gamma-frailty models for count data as described in [Henderson &
+Shimakura
+(2003)](https://academic.oup.com/biomet/article/90/2/355/241234).
 
 ## Installation
 
@@ -26,7 +27,8 @@ devtools::install_github("giuseppealfonzetti/gammaFrailty")
 
 ## Example
 
-Simple illustrative setting taken from Henderson & Shimakura (2003)
+Simple illustrative setting taken from [Henderson & Shimakura
+(2003)](https://academic.oup.com/biomet/article/90/2/355/241234)
 
 ``` r
 library(gammaFrailty)
@@ -74,10 +76,10 @@ fit <- fit_gammaFrailty(
 )
 #> 1. Initialising at init vector.
 #> 2. Optimising with ucminf...
-#> 3. Done! (0.94 secs)
+#> 3. Done! (1 secs)
 
 mean((repartopar(fit$theta)-theta)^2)
-#> [1] 0.001821759
+#> [1] 0.001430482
 mean((repartopar(par_init)-theta)^2)
-#> [1] 0.3043935
+#> [1] 0.2825957
 ```
