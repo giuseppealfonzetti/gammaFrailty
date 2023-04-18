@@ -12,8 +12,8 @@ ncl <- function(theta, data, X, printFLAG = FALSE) {
 }
 
 #' @export
-gammaFrailty <- function(THETA_INIT, DATA, X, MAXT, BURN, STEPSIZE, STEPSIZE0, NU, METHODFLAG = 0L, VERBOSEFLAG = FALSE, STEPSIZEFLAG = FALSE) {
-    .Call(`_gammaFrailty_gammaFrailty`, THETA_INIT, DATA, X, MAXT, BURN, STEPSIZE, STEPSIZE0, NU, METHODFLAG, VERBOSEFLAG, STEPSIZEFLAG)
+gammaFrailty <- function(THETA_INIT, DATA, X, MAXT, BURN, STEPSIZE, STEPSIZE0, NU, METHODFLAG = 0L, VERBOSEFLAG = FALSE, STEPSIZEFLAG = FALSE, par1 = 1, par2 = 1, par3 = .75) {
+    .Call(`_gammaFrailty_gammaFrailty`, THETA_INIT, DATA, X, MAXT, BURN, STEPSIZE, STEPSIZE0, NU, METHODFLAG, VERBOSEFLAG, STEPSIZEFLAG, par1, par2, par3)
 }
 
 #' @export
