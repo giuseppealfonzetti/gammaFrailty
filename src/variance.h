@@ -59,8 +59,8 @@ Eigen::MatrixXd sampleJ(
 //' @export
 // [[Rcpp::export]]
 Eigen::MatrixXd sampleH(
-        Eigen::Map<Eigen::VectorXd> THETA,
-        Eigen::Map<Eigen::MatrixXd> DATA,
+        Eigen::VectorXd THETA,
+        Eigen::MatrixXd DATA,
         Eigen::MatrixXd X,
         const bool PRINTFLAG = false,
         const bool INVERTFLAG = false

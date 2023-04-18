@@ -132,13 +132,13 @@ BEGIN_RCPP
 END_RCPP
 }
 // sampleH
-Eigen::MatrixXd sampleH(Eigen::Map<Eigen::VectorXd> THETA, Eigen::Map<Eigen::MatrixXd> DATA, Eigen::MatrixXd X, const bool PRINTFLAG, const bool INVERTFLAG);
+Eigen::MatrixXd sampleH(Eigen::VectorXd THETA, Eigen::MatrixXd DATA, Eigen::MatrixXd X, const bool PRINTFLAG, const bool INVERTFLAG);
 RcppExport SEXP _gammaFrailty_sampleH(SEXP THETASEXP, SEXP DATASEXP, SEXP XSEXP, SEXP PRINTFLAGSEXP, SEXP INVERTFLAGSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Eigen::Map<Eigen::VectorXd> >::type THETA(THETASEXP);
-    Rcpp::traits::input_parameter< Eigen::Map<Eigen::MatrixXd> >::type DATA(DATASEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type THETA(THETASEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type DATA(DATASEXP);
     Rcpp::traits::input_parameter< Eigen::MatrixXd >::type X(XSEXP);
     Rcpp::traits::input_parameter< const bool >::type PRINTFLAG(PRINTFLAGSEXP);
     Rcpp::traits::input_parameter< const bool >::type INVERTFLAG(INVERTFLAGSEXP);

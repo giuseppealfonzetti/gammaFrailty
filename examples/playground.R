@@ -193,7 +193,7 @@ Rwrapper_obj(probl)
 Rwrapper_obj_ind(probl, ind = 0)
 
 J <- sampleJ(repar_theta, dt, X)
-H <- sampleH(par_init, dt, X, invertFLAG = T)
+H <- sampleH(repar_theta, dt, X, INVERTFLAG = T)
 diag(H)
 Hnum <- numDeriv::jacobian(Rwrapper_ngr, par_init)
 Hnum-H
@@ -564,7 +564,7 @@ Opt_u <- fit_gammaFrailty(
 library(tidyverse)
 sim_settings <- expand_grid(
     mod = c('SGD', 'SCSD'),
-    stepsize = c(1.25e-4, 2.5e-4, 5e-4),
+    stepsize = c(5e-5,1.25e-4),
     stoc_seed = 1:5,
     maxiter = 5000,
     burn = 500
@@ -737,10 +737,13 @@ av_par_tab <- est_tab %>%
     )
 
 gg1 <- av_par_tab  %>%
+    filter(iter %in% seq(0, 5000, 100)) %>%
+    mutate(av_val = map2_dbl(av_val, par_type, ~if_else(.y == 'correlation', rofz_cpp(.x), .x))) %>%
     ggplot(aes(x = iter, y = av_val))+
     geom_line(aes(linetype = mod,  col = factor(stepsize), group = interaction(mod, stepsize, par))) +
-    geom_point(data = num_tib, aes(x = 2000, y = num_val), col = 'red', shape = 4, size = 2)+
-    geom_point(data = true_tib, aes(x = 2020, y = true_val), col = 'blue', shape = 4, size = 2)+
+    geom_point(data = num_tib %>% mutate(num_val = map2_dbl(num_val, par_type, ~if_else(.y == 'correlation', rofz_cpp(.x), .x)))
+, aes(x = 5000, y = num_val), col = 'red', shape = 4, size = 2)+
+    geom_point(data = true_tib, aes(x = 5020, y = true_val), col = 'blue', shape = 4, size = 2)+
     facet_wrap(vars(par_type), scales = 'free') +
     theme_bw()+
     scale_color_viridis_d()

@@ -33,6 +33,7 @@ class pair_class{
         double _Delta;
         double _f;
         double _S;
+        double _logS;
 
     //////////////////////////
     //////////////////////////
@@ -49,12 +50,17 @@ class pair_class{
         double compute_Q_(unsigned int ind, bool verboseFLAG = false);
         double compute_Sind_(unsigned int ind, bool verboseFLAG = false);
 
+        double compute_logQ0_(bool verboseFLAG = false);
+        double compute_stdQ_(unsigned int ind, bool verboseFLAG = false);
+
         // compute intermediate quantities and derivatives
         void compute_intermediate_();
         void compute_dintermediate_(bool verboseS = false);
 
         // return log-likelihood and gradient contribution
         double compute_ll_();
+        double compute_ll_stable_();
+
         Eigen::VectorXd compute_gradient_();
 
         // return lists with intermediate quantities (only for debugging)
@@ -71,6 +77,8 @@ class pair_class{
         void compute_D_();
         void compute_f_();
         void compute_S_(bool verboseFLAG = false);
+        void compute_logS_stable_(bool verboseFLAG = false);
+        double compute_Sind_stable_(unsigned int ind, bool verboseFLAG = false);
 
         /////////////////
         // DERIVATIVES //
@@ -96,6 +104,8 @@ class pair_class{
 
         Eigen::VectorXd _dlogS;
         void compute_dlogS_(bool verboseFLAG = false);
+        void compute_dlogS_stable_(bool verboseFLAG = false);
+
 
 };
 
@@ -280,7 +290,6 @@ void pair_class::compute_S_(bool verboseFLAG){
 
     _S = tmp;
 }
-
 //// DERIVATIVES ////
 // _du_j, _du_jp;
 void pair_class::compute_du_(){
@@ -399,6 +408,93 @@ Eigen::VectorXd pair_class::compute_dSind_(unsigned int ind, bool verboseFLAG){
 
 // _dlogS;
 void pair_class::compute_dlogS_(bool verboseFLAG){
+    _dlogS.resize(_d);
+    _dlogS.setZero();
+
+    double tmp_sum = 0;
+    Eigen::VectorXd tmp_dSum = Eigen::VectorXd::Zero(_d);
+
+    for(unsigned int ind = 0; ind <= _m_1; ind++){
+        double Sind = compute_Sind_(ind);
+        if(verboseFLAG) Rcpp::Rcout << "index:" << ind << " Sind:" << Sind << "\n";
+        tmp_sum  += Sind;
+
+        Eigen::VectorXd out = Eigen::VectorXd::Zero(_d);
+        {
+            // wrt xi
+            out(0) = Sind*(compute_dQ_xi_dividedbyQ_(ind) + ind*pow(_xi,-1) + ind*pow(_f,-1)*_df(0));
+
+            // wrt rho
+            out(1) = Sind*(ind/_f)*_df(1);
+
+            // wrt beta
+            out.segment(2,_r) = Sind*(ind/_f)*_df.segment(2,_r);
+
+            // wrt alpha
+            out(_r+2+_jp) = Sind*(ind/_f)*_df(_r+2+_jp);
+            out(_r+2+_j)  = Sind*(ind/_f)*_df(_r+2+_j );
+        }
+
+        tmp_dSum += out;
+    }
+
+
+    _S = tmp_sum;
+    _dlogS = tmp_dSum/_S;
+}
+
+// functions for numerical stability
+double pair_class::compute_logQ0_(bool verboseFLAG){
+    double out = 0;
+    for(unsigned int ind2 = _m_2; ind2 <= _m_1 + _m_2 - 1; ind2++){
+        out += log(1 + ind2 * _xi);
+    }
+
+    return out;
+}
+double pair_class::compute_stdQ_(unsigned int ind, bool verboseFLAG){
+    double Q = 1;
+    for(unsigned int ind2 = _m_1 + _m_2 - ind; ind2 <= _m_1 + _m_2 - 1; ind2++){
+        Q *= 1 + ind2 * _xi;
+    }
+
+    return Q;
+}
+double pair_class::compute_Sind_stable_(unsigned int ind, bool verboseFLAG){
+    double std_fct = boost::math::factorial<double>(ind)/compute_stdQ_(ind);
+    double out = pow(-_xi*_f, ind) * Rf_choose(_m_1, ind) * Rf_choose(_m_2, ind) * std_fct;
+
+    if(verboseFLAG)Rcpp::Rcout << "pow(-xi*f, ind):"<<pow(-_xi*_f, ind)<<"\nRf_choose(m_1, ind):"<<Rf_choose(_m_1, ind)
+                               <<"\nRf_choose(m_2, ind):"<<Rf_choose(_m_2, ind)<<"\nboost::math::factorial<double>(ind):"
+                               << boost::math::factorial<double>(ind) << "\n std fct:"<<std_fct<<"\n";
+    return out;
+}
+void pair_class::compute_logS_stable_(bool verboseFLAG){
+    double out = compute_logQ0_();
+    double tmp = 0;
+    for(unsigned int ind = 1; ind <= _m_1; ind++){
+        tmp += compute_Sind_stable_(ind);
+    }
+
+    out += log1p(tmp);
+    _logS = out;
+    _S = exp(out);
+}
+double pair_class::compute_ll_stable_(){
+
+    double out = 0;
+    double tmp0 = 0;
+    for(unsigned int ind = 0; ind < _m_2; ind++){
+        tmp0 += log(1 + ind*_xi);
+    }
+    double tmp1 = _n_j*_log_u_j + _n_jp*_log_u_jp +
+        _n_j*log(_D_j) + _n_jp*log(_D_jp) - (_n_j + _n_jp + 1/_xi)*log(_Delta);
+
+    out = tmp0 + tmp1 + _logS;
+
+    return out;
+}
+void pair_class::compute_dlogS_stable_(bool verboseFLAG){
     _dlogS.resize(_d);
     _dlogS.setZero();
 

@@ -33,12 +33,14 @@ Rcpp::List pair_wrapper(
     pair_class pair;
     pair.setup_(j, jp, n_j, n_jp, x, beta, alpha_j, alpha_jp, lxi, artanhrho, p);
     pair.compute_intermediate_( );
-    pair.compute_dintermediate_(verboseS);
-
     Rcpp::List interm  = pair.get_intermediate_( );
-    Rcpp::List dinterm = pair.get_dintermediate_();
 
+
+    pair.compute_dintermediate_(verboseS);
+    Rcpp::List dinterm = pair.get_dintermediate_();
     double ll = pair.compute_ll_();
+    double ll_stable = pair.compute_ll_stable_();
+
     Eigen::VectorXd gradient = pair.compute_gradient_();
 
 
@@ -46,6 +48,7 @@ Rcpp::List pair_wrapper(
         Rcpp::Named("Quantities") = interm,
         Rcpp::Named("Derivatives") = dinterm,
         Rcpp::Named("ll") = ll,
+        Rcpp::Named("ll_stable") = ll_stable,
         Rcpp::Named("gradient") = gradient,
         Rcpp::Named("Sind") = pair.compute_Sind_(ind, verboseSind),
         Rcpp::Named("Qind") = pair.compute_Q_(ind, verboseSind)
@@ -131,7 +134,10 @@ Rcpp::List gammaFrailty(
         const double NU,
         const int METHODFLAG = 0,
         const bool VERBOSEFLAG = false,
-        const bool STEPSIZEFLAG = false
+        const bool STEPSIZEFLAG = false,
+        const double par1 = 1,
+        const double par2 = 1,
+        const double par3 = .75
 ){
 
     // Set up clock monitor to export to R session trough RcppClock
@@ -270,7 +276,7 @@ Rcpp::List gammaFrailty(
             theta_t -= Eigen::VectorXd(stepsize_t.array() * ngradient_t.array());
         }else{
             // double stepsize_t = STEPSIZE * pow(t, -.501);
-            double stepsize_t = STEPSIZE * pow(1 + 1*pow(STEPSIZE,2)*t, -.75);
+            double stepsize_t = par1 * STEPSIZE * pow(1 + par2*STEPSIZE*t, -par3);
 
             theta_t -= stepsize_t * ngradient_t;
         }
