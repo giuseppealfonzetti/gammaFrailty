@@ -121,13 +121,13 @@ BEGIN_RCPP
 END_RCPP
 }
 // sampleJ
-Eigen::MatrixXd sampleJ(Eigen::Map<Eigen::VectorXd> THETA, Eigen::Map<Eigen::MatrixXd> DATA, Eigen::MatrixXd X, const bool PRINTFLAG);
+Eigen::MatrixXd sampleJ(Eigen::VectorXd THETA, Eigen::MatrixXd DATA, Eigen::MatrixXd X, const bool PRINTFLAG);
 RcppExport SEXP _gammaFrailty_sampleJ(SEXP THETASEXP, SEXP DATASEXP, SEXP XSEXP, SEXP PRINTFLAGSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Eigen::Map<Eigen::VectorXd> >::type THETA(THETASEXP);
-    Rcpp::traits::input_parameter< Eigen::Map<Eigen::MatrixXd> >::type DATA(DATASEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type THETA(THETASEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type DATA(DATASEXP);
     Rcpp::traits::input_parameter< Eigen::MatrixXd >::type X(XSEXP);
     Rcpp::traits::input_parameter< const bool >::type PRINTFLAG(PRINTFLAGSEXP);
     rcpp_result_gen = Rcpp::wrap(sampleJ(THETA, DATA, X, PRINTFLAG));
@@ -150,13 +150,13 @@ BEGIN_RCPP
 END_RCPP
 }
 // sampleVar
-Rcpp::List sampleVar(Eigen::Map<Eigen::VectorXd> THETA, Eigen::Map<Eigen::MatrixXd> DATA, Eigen::MatrixXd X, const unsigned int NU, const unsigned int METHOD, const unsigned int RANGE, const bool TOTFLAG, const bool PRINTFLAG);
+Rcpp::List sampleVar(Eigen::VectorXd THETA, Eigen::MatrixXd DATA, Eigen::MatrixXd X, const unsigned int NU, const unsigned int METHOD, const unsigned int RANGE, const bool TOTFLAG, const bool PRINTFLAG);
 RcppExport SEXP _gammaFrailty_sampleVar(SEXP THETASEXP, SEXP DATASEXP, SEXP XSEXP, SEXP NUSEXP, SEXP METHODSEXP, SEXP RANGESEXP, SEXP TOTFLAGSEXP, SEXP PRINTFLAGSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Eigen::Map<Eigen::VectorXd> >::type THETA(THETASEXP);
-    Rcpp::traits::input_parameter< Eigen::Map<Eigen::MatrixXd> >::type DATA(DATASEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type THETA(THETASEXP);
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type DATA(DATASEXP);
     Rcpp::traits::input_parameter< Eigen::MatrixXd >::type X(XSEXP);
     Rcpp::traits::input_parameter< const unsigned int >::type NU(NUSEXP);
     Rcpp::traits::input_parameter< const unsigned int >::type METHOD(METHODSEXP);

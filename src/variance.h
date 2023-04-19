@@ -6,8 +6,8 @@
 //' @export
 // [[Rcpp::export]]
 Eigen::MatrixXd sampleJ(
-        Eigen::Map<Eigen::VectorXd> THETA,
-        Eigen::Map<Eigen::MatrixXd> DATA,
+        Eigen::VectorXd THETA,
+        Eigen::MatrixXd DATA,
         Eigen::MatrixXd X,
         const bool PRINTFLAG = false
 ){
@@ -118,8 +118,8 @@ Eigen::MatrixXd sampleH(
 //' @export
 // [[Rcpp::export]]
 Rcpp::List sampleVar(
-        Eigen::Map<Eigen::VectorXd> THETA,
-        Eigen::Map<Eigen::MatrixXd> DATA,
+        Eigen::VectorXd THETA,
+        Eigen::MatrixXd DATA,
         Eigen::MatrixXd X,
         const unsigned int NU,
         const unsigned int METHOD,
