@@ -37,17 +37,17 @@ rmultinom_wrapper <- function(prob, classes, batch, K) {
 }
 
 #' @export
-sampleJ <- function(THETA, DATA, X, PRINTFLAG = FALSE) {
-    .Call(`_gammaFrailty_sampleJ`, THETA, DATA, X, PRINTFLAG)
+sampleJ <- function(THETA, DATA, X, PRINTFLAG = FALSE, PAIRS_RANGE = 100L) {
+    .Call(`_gammaFrailty_sampleJ`, THETA, DATA, X, PRINTFLAG, PAIRS_RANGE)
 }
 
 #' @export
-sampleH <- function(THETA, DATA, X, PRINTFLAG = FALSE, INVERTFLAG = FALSE) {
-    .Call(`_gammaFrailty_sampleH`, THETA, DATA, X, PRINTFLAG, INVERTFLAG)
+sampleH <- function(THETA, DATA, X, PRINTFLAG = FALSE, INVERTFLAG = FALSE, PAIRS_RANGE = 100L) {
+    .Call(`_gammaFrailty_sampleH`, THETA, DATA, X, PRINTFLAG, INVERTFLAG, PAIRS_RANGE)
 }
 
 #' @export
-sampleVar <- function(THETA, DATA, X, NU, METHOD, RANGE, TOTFLAG, PRINTFLAG) {
-    .Call(`_gammaFrailty_sampleVar`, THETA, DATA, X, NU, METHOD, RANGE, TOTFLAG, PRINTFLAG)
+sampleVar <- function(THETA, DATA, X, NU, METHOD, RANGE, TOTFLAG, PRINTFLAG, PAIRS_RANGE = 100L) {
+    .Call(`_gammaFrailty_sampleVar`, THETA, DATA, X, NU, METHOD, RANGE, TOTFLAG, PRINTFLAG, PAIRS_RANGE)
 }
 

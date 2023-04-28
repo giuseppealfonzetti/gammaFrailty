@@ -9,7 +9,8 @@ Eigen::MatrixXd sampleJ(
         Eigen::VectorXd THETA,
         Eigen::MatrixXd DATA,
         Eigen::MatrixXd X,
-        const bool PRINTFLAG = false
+        const bool PRINTFLAG = false,
+        const int PAIRS_RANGE = 100
 ){
     unsigned int d = THETA.size();
     unsigned int n = DATA.rows();
@@ -32,7 +33,7 @@ Eigen::MatrixXd sampleJ(
             unsigned int n_j = DATA(i, j);
             double alpha_j = THETA(r+2+j);
 
-            for( unsigned int jp = 0; jp < j; jp++){
+            for( unsigned int jp = std::max(0, int(j - PAIRS_RANGE)); jp < j; jp++){
                 const unsigned int n_jp = DATA(i, jp);
                 const double alpha_jp = THETA(r+2+jp);
 
@@ -63,7 +64,8 @@ Eigen::MatrixXd sampleH(
         Eigen::MatrixXd DATA,
         Eigen::MatrixXd X,
         const bool PRINTFLAG = false,
-        const bool INVERTFLAG = false
+        const bool INVERTFLAG = false,
+        const int PAIRS_RANGE = 100
 ){
     unsigned int d = THETA.size();
     unsigned int n = DATA.rows();
@@ -85,7 +87,7 @@ Eigen::MatrixXd sampleH(
             unsigned int n_j = DATA(i, j);
             double alpha_j = THETA(r+2+j);
 
-            for( unsigned int jp = 0; jp < j; jp++){
+            for( unsigned int jp = std::max(0, int(j - PAIRS_RANGE)); jp < j; jp++){
                 const unsigned int n_jp = DATA(i, jp);
                 const double alpha_jp = THETA(r+2+jp);
 
@@ -125,7 +127,8 @@ Rcpp::List sampleVar(
         const unsigned int METHOD,
         const unsigned int RANGE,
         const bool TOTFLAG,
-        const bool PRINTFLAG
+        const bool PRINTFLAG,
+        const int PAIRS_RANGE = 100
 ){
 
     // Identify dimensions
@@ -141,10 +144,10 @@ Rcpp::List sampleVar(
     Rcpp::List se;
 
     // Compute inverse of negative hessian
-    Eigen::MatrixXd inv_hmat = sampleH(THETA, DATA, X, PRINTFLAG, true);
+    Eigen::MatrixXd inv_hmat = sampleH(THETA, DATA, X, PRINTFLAG, true, PAIRS_RANGE);
 
     if(METHOD == 0){
-        jmat = sampleJ(THETA, DATA, X, PRINTFLAG);
+        jmat = sampleJ(THETA, DATA, X, PRINTFLAG, PAIRS_RANGE);
         sandwich = inv_hmat*jmat*inv_hmat;
         tot = sandwich/n;
 
@@ -154,7 +157,7 @@ Rcpp::List sampleVar(
     }
 
     if(METHOD == 1){
-        jmat = sampleJ(THETA, DATA, X, PRINTFLAG);
+        jmat = sampleJ(THETA, DATA, X, PRINTFLAG, PAIRS_RANGE);
         sandwich = inv_hmat*jmat*inv_hmat;
         double st_scale = NU*RANGE;
 
@@ -183,7 +186,7 @@ Rcpp::List sampleVar(
 
         if(TOTFLAG) {
 
-            jmat = sampleJ(THETA, DATA, X, PRINTFLAG);
+            jmat = sampleJ(THETA, DATA, X, PRINTFLAG, PAIRS_RANGE);
             sandwich = inv_hmat*jmat*inv_hmat;
             var = Rcpp::List::create(
                 Rcpp::Named("var_stoc") = inv_hmat/st_scale,

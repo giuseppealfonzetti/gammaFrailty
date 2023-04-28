@@ -123,8 +123,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // sampleJ
-Eigen::MatrixXd sampleJ(Eigen::VectorXd THETA, Eigen::MatrixXd DATA, Eigen::MatrixXd X, const bool PRINTFLAG);
-RcppExport SEXP _gammaFrailty_sampleJ(SEXP THETASEXP, SEXP DATASEXP, SEXP XSEXP, SEXP PRINTFLAGSEXP) {
+Eigen::MatrixXd sampleJ(Eigen::VectorXd THETA, Eigen::MatrixXd DATA, Eigen::MatrixXd X, const bool PRINTFLAG, const int PAIRS_RANGE);
+RcppExport SEXP _gammaFrailty_sampleJ(SEXP THETASEXP, SEXP DATASEXP, SEXP XSEXP, SEXP PRINTFLAGSEXP, SEXP PAIRS_RANGESEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -132,13 +132,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Eigen::MatrixXd >::type DATA(DATASEXP);
     Rcpp::traits::input_parameter< Eigen::MatrixXd >::type X(XSEXP);
     Rcpp::traits::input_parameter< const bool >::type PRINTFLAG(PRINTFLAGSEXP);
-    rcpp_result_gen = Rcpp::wrap(sampleJ(THETA, DATA, X, PRINTFLAG));
+    Rcpp::traits::input_parameter< const int >::type PAIRS_RANGE(PAIRS_RANGESEXP);
+    rcpp_result_gen = Rcpp::wrap(sampleJ(THETA, DATA, X, PRINTFLAG, PAIRS_RANGE));
     return rcpp_result_gen;
 END_RCPP
 }
 // sampleH
-Eigen::MatrixXd sampleH(Eigen::VectorXd THETA, Eigen::MatrixXd DATA, Eigen::MatrixXd X, const bool PRINTFLAG, const bool INVERTFLAG);
-RcppExport SEXP _gammaFrailty_sampleH(SEXP THETASEXP, SEXP DATASEXP, SEXP XSEXP, SEXP PRINTFLAGSEXP, SEXP INVERTFLAGSEXP) {
+Eigen::MatrixXd sampleH(Eigen::VectorXd THETA, Eigen::MatrixXd DATA, Eigen::MatrixXd X, const bool PRINTFLAG, const bool INVERTFLAG, const int PAIRS_RANGE);
+RcppExport SEXP _gammaFrailty_sampleH(SEXP THETASEXP, SEXP DATASEXP, SEXP XSEXP, SEXP PRINTFLAGSEXP, SEXP INVERTFLAGSEXP, SEXP PAIRS_RANGESEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -147,13 +148,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Eigen::MatrixXd >::type X(XSEXP);
     Rcpp::traits::input_parameter< const bool >::type PRINTFLAG(PRINTFLAGSEXP);
     Rcpp::traits::input_parameter< const bool >::type INVERTFLAG(INVERTFLAGSEXP);
-    rcpp_result_gen = Rcpp::wrap(sampleH(THETA, DATA, X, PRINTFLAG, INVERTFLAG));
+    Rcpp::traits::input_parameter< const int >::type PAIRS_RANGE(PAIRS_RANGESEXP);
+    rcpp_result_gen = Rcpp::wrap(sampleH(THETA, DATA, X, PRINTFLAG, INVERTFLAG, PAIRS_RANGE));
     return rcpp_result_gen;
 END_RCPP
 }
 // sampleVar
-Rcpp::List sampleVar(Eigen::VectorXd THETA, Eigen::MatrixXd DATA, Eigen::MatrixXd X, const unsigned int NU, const unsigned int METHOD, const unsigned int RANGE, const bool TOTFLAG, const bool PRINTFLAG);
-RcppExport SEXP _gammaFrailty_sampleVar(SEXP THETASEXP, SEXP DATASEXP, SEXP XSEXP, SEXP NUSEXP, SEXP METHODSEXP, SEXP RANGESEXP, SEXP TOTFLAGSEXP, SEXP PRINTFLAGSEXP) {
+Rcpp::List sampleVar(Eigen::VectorXd THETA, Eigen::MatrixXd DATA, Eigen::MatrixXd X, const unsigned int NU, const unsigned int METHOD, const unsigned int RANGE, const bool TOTFLAG, const bool PRINTFLAG, const int PAIRS_RANGE);
+RcppExport SEXP _gammaFrailty_sampleVar(SEXP THETASEXP, SEXP DATASEXP, SEXP XSEXP, SEXP NUSEXP, SEXP METHODSEXP, SEXP RANGESEXP, SEXP TOTFLAGSEXP, SEXP PRINTFLAGSEXP, SEXP PAIRS_RANGESEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -165,7 +167,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const unsigned int >::type RANGE(RANGESEXP);
     Rcpp::traits::input_parameter< const bool >::type TOTFLAG(TOTFLAGSEXP);
     Rcpp::traits::input_parameter< const bool >::type PRINTFLAG(PRINTFLAGSEXP);
-    rcpp_result_gen = Rcpp::wrap(sampleVar(THETA, DATA, X, NU, METHOD, RANGE, TOTFLAG, PRINTFLAG));
+    Rcpp::traits::input_parameter< const int >::type PAIRS_RANGE(PAIRS_RANGESEXP);
+    rcpp_result_gen = Rcpp::wrap(sampleVar(THETA, DATA, X, NU, METHOD, RANGE, TOTFLAG, PRINTFLAG, PAIRS_RANGE));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -178,9 +181,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_gammaFrailty_rofz_cpp", (DL_FUNC) &_gammaFrailty_rofz_cpp, 1},
     {"_gammaFrailty_drofz_cpp", (DL_FUNC) &_gammaFrailty_drofz_cpp, 1},
     {"_gammaFrailty_rmultinom_wrapper", (DL_FUNC) &_gammaFrailty_rmultinom_wrapper, 4},
-    {"_gammaFrailty_sampleJ", (DL_FUNC) &_gammaFrailty_sampleJ, 4},
-    {"_gammaFrailty_sampleH", (DL_FUNC) &_gammaFrailty_sampleH, 5},
-    {"_gammaFrailty_sampleVar", (DL_FUNC) &_gammaFrailty_sampleVar, 8},
+    {"_gammaFrailty_sampleJ", (DL_FUNC) &_gammaFrailty_sampleJ, 5},
+    {"_gammaFrailty_sampleH", (DL_FUNC) &_gammaFrailty_sampleH, 6},
+    {"_gammaFrailty_sampleVar", (DL_FUNC) &_gammaFrailty_sampleVar, 9},
     {NULL, NULL, 0}
 };
 

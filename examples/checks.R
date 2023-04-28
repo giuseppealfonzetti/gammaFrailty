@@ -3,14 +3,14 @@ library(tidyverse)
 
 #### choose true model ####
 
-p <- 30
+p <- 12
 q <- 2
 
 xi <- 2/q
 rho <- .8
 
 m <- 20
-n <- 1000
+n <- 200
 int <- runif(p, -.5, .5)#rep(.5, p)#
 b <-  rnorm(m, 0, .1) #runif(m,0,.5)#rep(0, m)
 set.seed(1)
@@ -107,7 +107,7 @@ Rwrapper_obj_fun_stable(repar_theta)
 
 numDeriv::grad(Rwrapper_obj_fun, repar_theta)
 Rwrapper_obj_der(repar_theta)
-p_range = p
+p_range = 3
 ncl(theta, dt, X, T)
 Rwrapper_ncl <- function(par){
     ncl(par, dt, X, PAIRS_RANGE = p_range)$nll
@@ -124,6 +124,9 @@ Rwrapper_ncl(par = par_init)
 numDeriv::grad(Rwrapper_ncl, par_init)
 Rwrapper_ngr(par = par_init)
 
+numH <- numDeriv::jacobian(Rwrapper_ngr, repar_theta)
+H <- sampleH(repar_theta, dt, X, INVERTFLAG = F, F, PAIRS_RANGE = p_range)
+diag(numH)-diag(H)
 #### Opt ####
 # p <- 9
 # p_range <- 10
