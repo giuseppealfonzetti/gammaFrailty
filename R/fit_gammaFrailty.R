@@ -8,9 +8,11 @@ fit_gammaFrailty <- function(
             STEPSIZE = .01,
             STEPSIZE0 = NULL,
             NU = 1,
-            SEED = 123
+            SEED = 123,
+            PAIRS_RANGE = 5
         ),
-        UCMINF_CONTROL = list('ctrl' = list(), 'hessian' = 0 ),
+        UCMINF_CONTROL = list('ctrl' = list(), 'hessian' = 0),
+        PAIRS_RANGE = 3,
         INIT = NULL,
         ITERATIONS_SUBSET = NULL,
         VERBOSEFLAG = 0
@@ -47,10 +49,10 @@ fit_gammaFrailty <- function(
 
         message('2. Optimising with ucminf...')
         # R wrapper of cpp function for negative composite log-likelihood
-        Rwr_ncl <- function(par){ ncl(par, DATA_LIST$DATA, DATA_LIST$X)$nll }
+        Rwr_ncl <- function(par){ ncl(par, DATA_LIST$DATA, DATA_LIST$X, PAIRS_RANGE = PAIRS_RANGE)$nll}
 
         # R wrapper of cpp function for negative composite score
-        Rwr_ngr <- function(par){ ncl(par, DATA_LIST$DATA, DATA_LIST$X)$ngradient }
+        Rwr_ngr <- function(par){ ncl(par, DATA_LIST$DATA, DATA_LIST$X, PAIRS_RANGE = PAIRS_RANGE)$ngradient }
 
         # list of ucminf args
         args <- list(
@@ -103,6 +105,7 @@ fit_gammaFrailty <- function(
         } else {
             args$STEPSIZEFLAG <- 1
         }
+        args$PAIRS_RANGE <- PAIRS_RANGE
 
 
         fit <- do.call(gammaFrailty, args)

@@ -68,7 +68,8 @@ Rcpp::List ncl(
     Eigen::VectorXd theta,
     Eigen::MatrixXd data,
     Eigen::MatrixXd X,
-    bool printFLAG = false
+    bool printFLAG = false,
+    const int PAIRS_RANGE = 100
 ){
     unsigned int d = theta.size();
     unsigned int n = data.rows();
@@ -91,7 +92,7 @@ Rcpp::List ncl(
             unsigned int n_j = data(i, j);
             double alpha_j = theta(r+2+j);
 
-            for( unsigned int jp = 0; jp < j; jp++){
+            for( unsigned int jp = std::max(0, int(j - PAIRS_RANGE)); jp < j; jp++){
                 unsigned int n_jp = data(i, jp);
                 double alpha_jp = theta(r+2+jp);
 
@@ -137,7 +138,8 @@ Rcpp::List gammaFrailty(
         const bool STEPSIZEFLAG = false,
         const double par1 = 1,
         const double par2 = 1,
-        const double par3 = .75
+        const double par3 = .75,
+        int PAIRS_RANGE = 100
 ){
 
     // Set up clock monitor to export to R session trough RcppClock
@@ -149,7 +151,9 @@ Rcpp::List gammaFrailty(
     const unsigned int n = DATA.rows();
     const unsigned int p = DATA.cols();
     const unsigned int r = X.cols();
-    const unsigned int kk = p*(p-1)/2;
+    PAIRS_RANGE = std::min(int(p)-1, PAIRS_RANGE);
+    // const unsigned int kk = p*(p-1)/2;
+    const unsigned int kk = (p-PAIRS_RANGE)*PAIRS_RANGE+PAIRS_RANGE*(PAIRS_RANGE)/2;
 
 
     Eigen::VectorXd stepsizeV(d); stepsizeV.fill(STEPSIZE); stepsizeV(0) = STEPSIZE0;
@@ -242,7 +246,7 @@ Rcpp::List gammaFrailty(
                 unsigned int n_j = DATA(i, j);
                 double alpha_j   = theta_t(r + 2 + j);
 
-                for( unsigned int jp = 0; jp < j; jp++){
+                for( unsigned int jp = std::max(0, int(j-PAIRS_RANGE)); jp < j; jp++){
 
                     unsigned int weight = sampling_weights(i, k_counter);
 
@@ -275,7 +279,9 @@ Rcpp::List gammaFrailty(
             Eigen::VectorXd stepsize_t = stepsizeV * pow(t, -.501);
             theta_t -= Eigen::VectorXd(stepsize_t.array() * ngradient_t.array());
         }else{
-            // double stepsize_t = STEPSIZE * pow(t, -.501);
+            // double stepsize_t = STEPSIZE * pow(t, -.501
+            Eigen::VectorXd scale_vector = Eigen::VectorXd::Ones(d);
+
             double stepsize_t = par1 * STEPSIZE * pow(1 + par2*STEPSIZE*t, -par3);
 
             theta_t -= stepsize_t * ngradient_t;

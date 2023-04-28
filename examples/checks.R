@@ -3,7 +3,7 @@ library(tidyverse)
 
 #### choose true model ####
 
-p <- 50
+p <- 30
 q <- 2
 
 xi <- 2/q
@@ -107,14 +107,14 @@ Rwrapper_obj_fun_stable(repar_theta)
 
 numDeriv::grad(Rwrapper_obj_fun, repar_theta)
 Rwrapper_obj_der(repar_theta)
-
+p_range = p
 ncl(theta, dt, X, T)
 Rwrapper_ncl <- function(par){
-    ncl(par, dt, X)$nll
+    ncl(par, dt, X, PAIRS_RANGE = p_range)$nll
 }
 
 Rwrapper_ngr <- function(par){
-    ncl(par, dt, X)$ngradient
+    ncl(par, dt, X, PAIRS_RANGE = p_range)$ngradient
 }
 
 par_init <- rep(0, length(theta))
@@ -125,7 +125,19 @@ numDeriv::grad(Rwrapper_ncl, par_init)
 Rwrapper_ngr(par = par_init)
 
 #### Opt ####
+# p <- 9
+# p_range <- 10
+# counter <- 0
+# for (i in 1:(p-1)) {
+#     for (j in max(0, i-p_range):(i-1)) {
+#          counter <- counter+1
+#     }
+# }
+# counter
+#
+# (p-p_range)*p_range+(p_range*(p_range-1))/2
 par_init <- repar_theta + runif(length(repar_theta), -1, 1);
+p_range <- 3
 system.time(
     opt <- ucminf::ucminf(par_init, Rwrapper_ncl, Rwrapper_ngr)
 )
@@ -151,7 +163,7 @@ theta
 ctrl_sgd <- list(
     MAXT = 5000,
     BURN = 1000,
-    STEPSIZE = .0001,
+    STEPSIZE = .01,
     #STEPSIZE0 = .0005,
     NU = 1,
     SEED = seed
@@ -160,6 +172,7 @@ Opt_sgd <- fit_gammaFrailty(
     DATA_LIST = list('DATA' = dt, 'X' = X),
     METHOD = 'SCSD',
     CPP_CONTROL = ctrl_sgd,
+    PAIRS_RANGE = 3,
     VERBOSEFLAG= 0,
     INIT = par_init,
     ITERATIONS_SUBSET = NULL#trajSub
@@ -172,6 +185,7 @@ Opt_u <- fit_gammaFrailty(
     METHOD = 'ucminf',
     CPP_CONTROL = list(),
     #UCMINF_CONTROL = list('ctrl' = list(invhessian.lt = solve(H0)[lower.tri(H0,diag=TRUE)]), 'hessian' = 0),
+    PAIRS_RANGE = 5,
     VERBOSEFLAG= 0,
     INIT = par_init,
     ITERATIONS_SUBSET = NULL
@@ -210,12 +224,13 @@ diag(H)
 diag(solve(H))
 eigen(H)$val %>% min() %>% solve()
 eigen(H)$val %>% max() %>% solve()
-
+range_lag = 3
 Opt_u <- fit_gammaFrailty(
     DATA_LIST = list('DATA' = dt, 'X' = X),
     METHOD = 'ucminf',
     CPP_CONTROL = list(),
     #UCMINF_CONTROL = list('ctrl' = list(invhessian.lt = solve(H0)[lower.tri(H0,diag=TRUE)]), 'hessian' = 0),
+    PAIRS_RANGE = range_lag,
     VERBOSEFLAG= 0,
     INIT = par_init,
     ITERATIONS_SUBSET = NULL
@@ -223,9 +238,9 @@ Opt_u <- fit_gammaFrailty(
 library(tidyverse)
 sim_settings <- expand_grid(
     mod = c('SGD', 'SCSD'),
-    stepsize = c(1e-5, 5e-5,1.25e-4),
+    stepsize = c(1e-3,1e-2),
     stoc_seed = 1:2,
-    maxiter = 5000,
+    maxiter = 3000,
     burn = 500
 )
 
@@ -241,6 +256,7 @@ custom_est_fun <- function(MOD, STEPSIZE, SEED, MAXT, BURN){
         DATA_LIST = list('DATA' = dt, 'X' = X),
         METHOD = MOD,
         CPP_CONTROL = ctrl,
+        PAIRS_RANGE = range_lag,
         VERBOSEFLAG= 0,
         INIT = par_init,
         ITERATIONS_SUBSET = NULL#trajSub

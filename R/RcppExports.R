@@ -7,13 +7,13 @@ pair_wrapper <- function(j, jp, n_j, n_jp, p, alpha_j, alpha_jp, x, beta, lxi, a
 }
 
 #' @export
-ncl <- function(theta, data, X, printFLAG = FALSE) {
-    .Call(`_gammaFrailty_ncl`, theta, data, X, printFLAG)
+ncl <- function(theta, data, X, printFLAG = FALSE, PAIRS_RANGE = 100L) {
+    .Call(`_gammaFrailty_ncl`, theta, data, X, printFLAG, PAIRS_RANGE)
 }
 
 #' @export
-gammaFrailty <- function(THETA_INIT, DATA, X, MAXT, BURN, STEPSIZE, STEPSIZE0, NU, METHODFLAG = 0L, VERBOSEFLAG = FALSE, STEPSIZEFLAG = FALSE, par1 = 1, par2 = 1, par3 = .75) {
-    .Call(`_gammaFrailty_gammaFrailty`, THETA_INIT, DATA, X, MAXT, BURN, STEPSIZE, STEPSIZE0, NU, METHODFLAG, VERBOSEFLAG, STEPSIZEFLAG, par1, par2, par3)
+gammaFrailty <- function(THETA_INIT, DATA, X, MAXT, BURN, STEPSIZE, STEPSIZE0, NU, METHODFLAG = 0L, VERBOSEFLAG = FALSE, STEPSIZEFLAG = FALSE, par1 = 1, par2 = 1, par3 = .75, PAIRS_RANGE = 100L) {
+    .Call(`_gammaFrailty_gammaFrailty`, THETA_INIT, DATA, X, MAXT, BURN, STEPSIZE, STEPSIZE0, NU, METHODFLAG, VERBOSEFLAG, STEPSIZEFLAG, par1, par2, par3, PAIRS_RANGE)
 }
 
 #' @export
