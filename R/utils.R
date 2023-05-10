@@ -29,7 +29,7 @@ repartopar <- function(repar){
 }
 
 #'@export
-check_SCSD_args <- function(ARGS, N){
+check_SCSD_args <- function(ARGS, N, D){
 
     out <- ARGS
 
@@ -38,6 +38,7 @@ check_SCSD_args <- function(ARGS, N){
     if(is.null(ARGS$STEPSIZE)) out$STEPSIZE <- 1e-3
     if(is.null(ARGS$NU)) out$NU <- 1
     if(is.null(ARGS$SEED)) out$SEED <- 123
+    if(is.null(ARGS$SCALEVEC)) out$SCALEVEC <- rep(1, D)
     #if(is.null(ARGS$PAIRS_RANGE)) out$PAIRS_RANGE <- 3
 
 

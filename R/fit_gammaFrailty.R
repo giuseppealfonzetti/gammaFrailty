@@ -81,7 +81,7 @@ fit_gammaFrailty <- function(
         message(paste0('2. Optimising with ', METHOD, '...'))
 
         # Check stochastic controlparameters
-        cpp_ctrl <- check_SCSD_args(CPP_CONTROL, N = n)
+        cpp_ctrl <- check_SCSD_args(CPP_CONTROL, N = n, D = d)
 
          # Check iterations selected
         if(!is.null(ITERATIONS_SUBSET)){

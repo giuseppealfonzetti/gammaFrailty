@@ -132,6 +132,7 @@ Rcpp::List gammaFrailty(
         const unsigned int BURN,
         const double STEPSIZE,
         const double STEPSIZE0,
+        Eigen::VectorXd SCALEVEC,
         const double NU,
         const int METHODFLAG = 0,
         const bool VERBOSEFLAG = false,
@@ -139,7 +140,8 @@ Rcpp::List gammaFrailty(
         const double par1 = 1,
         const double par2 = 1,
         const double par3 = .75,
-        int PAIRS_RANGE = 100
+        int PAIRS_RANGE = 100,
+        const bool SCALEFLAG = false
 ){
 
     // Set up clock monitor to export to R session trough RcppClock
@@ -275,22 +277,13 @@ Rcpp::List gammaFrailty(
         ///////////////////////////
         /*    PARAMETERS UPDATE  */
         ///////////////////////////
-        if(STEPSIZEFLAG){
-            Eigen::VectorXd stepsize_t = stepsizeV * pow(t, -.501);
-            theta_t -= Eigen::VectorXd(stepsize_t.array() * ngradient_t.array());
-        }else{
-            // double stepsize_t = STEPSIZE * pow(t, -.501
-            Eigen::VectorXd scale_vector = Eigen::VectorXd::Ones(d);
-
-            double stepsize_t = par1 * STEPSIZE * pow(1 + par2*STEPSIZE*t, -par3);
-
-            theta_t -= stepsize_t * ngradient_t;
-        }
+        double stepsize_t = par1 * STEPSIZE * pow(1 + par2*STEPSIZE*t, -par3);
+        theta_t -= Eigen::VectorXd(stepsize_t * SCALEVEC.array() * ngradient_t.array());
 
         ///////////////////////////////
         /* STORE ITERATION QUANTITIES  */
         /////////////////////////////////
-        path_theta.row(t ) = theta_t;
+        path_theta.row(t) = theta_t;
         path_grad.row(t-1) = ngradient_t;
         path_nll.push_back(nll);
 
@@ -320,6 +313,7 @@ Rcpp::List gammaFrailty(
 
     return output;
 }
+
 
 
 

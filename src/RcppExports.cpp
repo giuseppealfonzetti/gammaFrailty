@@ -51,8 +51,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // gammaFrailty
-Rcpp::List gammaFrailty(Eigen::VectorXd THETA_INIT, Eigen::MatrixXd DATA, const Eigen::MatrixXd X, const unsigned int MAXT, const unsigned int BURN, const double STEPSIZE, const double STEPSIZE0, const double NU, const int METHODFLAG, const bool VERBOSEFLAG, const bool STEPSIZEFLAG, const double par1, const double par2, const double par3, int PAIRS_RANGE);
-RcppExport SEXP _gammaFrailty_gammaFrailty(SEXP THETA_INITSEXP, SEXP DATASEXP, SEXP XSEXP, SEXP MAXTSEXP, SEXP BURNSEXP, SEXP STEPSIZESEXP, SEXP STEPSIZE0SEXP, SEXP NUSEXP, SEXP METHODFLAGSEXP, SEXP VERBOSEFLAGSEXP, SEXP STEPSIZEFLAGSEXP, SEXP par1SEXP, SEXP par2SEXP, SEXP par3SEXP, SEXP PAIRS_RANGESEXP) {
+Rcpp::List gammaFrailty(Eigen::VectorXd THETA_INIT, Eigen::MatrixXd DATA, const Eigen::MatrixXd X, const unsigned int MAXT, const unsigned int BURN, const double STEPSIZE, const double STEPSIZE0, Eigen::VectorXd SCALEVEC, const double NU, const int METHODFLAG, const bool VERBOSEFLAG, const bool STEPSIZEFLAG, const double par1, const double par2, const double par3, int PAIRS_RANGE, const bool SCALEFLAG);
+RcppExport SEXP _gammaFrailty_gammaFrailty(SEXP THETA_INITSEXP, SEXP DATASEXP, SEXP XSEXP, SEXP MAXTSEXP, SEXP BURNSEXP, SEXP STEPSIZESEXP, SEXP STEPSIZE0SEXP, SEXP SCALEVECSEXP, SEXP NUSEXP, SEXP METHODFLAGSEXP, SEXP VERBOSEFLAGSEXP, SEXP STEPSIZEFLAGSEXP, SEXP par1SEXP, SEXP par2SEXP, SEXP par3SEXP, SEXP PAIRS_RANGESEXP, SEXP SCALEFLAGSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -63,6 +63,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const unsigned int >::type BURN(BURNSEXP);
     Rcpp::traits::input_parameter< const double >::type STEPSIZE(STEPSIZESEXP);
     Rcpp::traits::input_parameter< const double >::type STEPSIZE0(STEPSIZE0SEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type SCALEVEC(SCALEVECSEXP);
     Rcpp::traits::input_parameter< const double >::type NU(NUSEXP);
     Rcpp::traits::input_parameter< const int >::type METHODFLAG(METHODFLAGSEXP);
     Rcpp::traits::input_parameter< const bool >::type VERBOSEFLAG(VERBOSEFLAGSEXP);
@@ -71,7 +72,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const double >::type par2(par2SEXP);
     Rcpp::traits::input_parameter< const double >::type par3(par3SEXP);
     Rcpp::traits::input_parameter< int >::type PAIRS_RANGE(PAIRS_RANGESEXP);
-    rcpp_result_gen = Rcpp::wrap(gammaFrailty(THETA_INIT, DATA, X, MAXT, BURN, STEPSIZE, STEPSIZE0, NU, METHODFLAG, VERBOSEFLAG, STEPSIZEFLAG, par1, par2, par3, PAIRS_RANGE));
+    Rcpp::traits::input_parameter< const bool >::type SCALEFLAG(SCALEFLAGSEXP);
+    rcpp_result_gen = Rcpp::wrap(gammaFrailty(THETA_INIT, DATA, X, MAXT, BURN, STEPSIZE, STEPSIZE0, SCALEVEC, NU, METHODFLAG, VERBOSEFLAG, STEPSIZEFLAG, par1, par2, par3, PAIRS_RANGE, SCALEFLAG));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -176,7 +178,7 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_gammaFrailty_pair_wrapper", (DL_FUNC) &_gammaFrailty_pair_wrapper, 14},
     {"_gammaFrailty_ncl", (DL_FUNC) &_gammaFrailty_ncl, 5},
-    {"_gammaFrailty_gammaFrailty", (DL_FUNC) &_gammaFrailty_gammaFrailty, 15},
+    {"_gammaFrailty_gammaFrailty", (DL_FUNC) &_gammaFrailty_gammaFrailty, 17},
     {"_gammaFrailty_zofr_cpp", (DL_FUNC) &_gammaFrailty_zofr_cpp, 1},
     {"_gammaFrailty_rofz_cpp", (DL_FUNC) &_gammaFrailty_rofz_cpp, 1},
     {"_gammaFrailty_drofz_cpp", (DL_FUNC) &_gammaFrailty_drofz_cpp, 1},
