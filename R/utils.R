@@ -33,7 +33,7 @@ check_SCSD_args <- function(ARGS, N, D){
 
     out <- ARGS
 
-    if(is.null(ARGS$MAXT)) out$MAXT <- round(N^1.5,0)
+    if(is.null(ARGS$MAXT)) out$MAXT <- round(N,0)
     if(is.null(ARGS$BURN)) out$BURN <- 0
     if(is.null(ARGS$STEPSIZE)) out$STEPSIZE <- 1e-3
     if(is.null(ARGS$NU)) out$NU <- 1

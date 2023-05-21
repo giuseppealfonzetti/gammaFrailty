@@ -99,12 +99,6 @@ fit_gammaFrailty <- function(
         args$SEED <- NULL
 
         args$METHODFLAG <- dplyr::if_else(METHOD == 'SGD', 1, 2)
-        if(is.null(CPP_CONTROL$STEPSIZE0)){
-            args$STEPSIZE0 <-  cpp_ctrl$STEPSIZE
-            args$STEPSIZEFLAG <- 0
-        } else {
-            args$STEPSIZEFLAG <- 1
-        }
         args$PAIRS_RANGE <- PAIRS_RANGE
 
 
@@ -119,6 +113,8 @@ fit_gammaFrailty <- function(
 
 
         out$control <- cpp_ctrl
+        out$ctrl_args <- args
+
         out$fit <- fit
         out$theta <- fit$path_av_theta[nrow(fit$path_av_theta),]
         end_time <- Sys.time()
