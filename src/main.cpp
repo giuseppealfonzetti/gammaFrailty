@@ -25,13 +25,13 @@ Rcpp::List pair_wrapper(
         double artanhrho,         // artanh of correlation of adjacent periods
         unsigned int ind = 0,
         bool verboseS = false,
-        bool verboseSind = false
-
+        bool verboseSind = false,
+        unsigned int STRUCT = 0
 ){
 
 
     pair_class pair;
-    pair.setup_(j, jp, n_j, n_jp, x, beta, alpha_j, alpha_jp, lxi, artanhrho, p);
+    pair.setup_(j, jp, n_j, n_jp, x, beta, alpha_j, alpha_jp, lxi, artanhrho, p, STRUCT);
     pair.compute_intermediate_( );
     Rcpp::List interm  = pair.get_intermediate_( );
 
@@ -51,7 +51,11 @@ Rcpp::List pair_wrapper(
         Rcpp::Named("ll_stable") = ll_stable,
         Rcpp::Named("gradient") = gradient,
         Rcpp::Named("Sind") = pair.compute_Sind_(ind, verboseSind),
-        Rcpp::Named("Qind") = pair.compute_Q_(ind, verboseSind)
+        Rcpp::Named("Qind") = pair.compute_Q_(ind, verboseSind),
+        Rcpp::Named("adiff") = pair._adiff,
+        Rcpp::Named("struct") = pair._struct
+
+
         );
 
     // Rcpp::List output =
@@ -69,7 +73,8 @@ Rcpp::List ncl(
     Eigen::MatrixXd data,
     Eigen::MatrixXd X,
     bool printFLAG = false,
-    const int PAIRS_RANGE = 100
+    const int PAIRS_RANGE = 100,
+    const int STRUCT = 0
 ){
     unsigned int d = theta.size();
     unsigned int n = data.rows();
@@ -96,7 +101,7 @@ Rcpp::List ncl(
                 unsigned int n_jp = data(i, jp);
                 double alpha_jp = theta(r+2+jp);
 
-                pair.setup_(j, jp, n_j, n_jp, x_i, beta, alpha_j, alpha_jp, lxi, artanhrho, p);
+                pair.setup_(j, jp, n_j, n_jp, x_i, beta, alpha_j, alpha_jp, lxi, artanhrho, p, STRUCT);
                 pair.compute_intermediate_( );
                 pair.compute_dintermediate_();
                 double ll = pair.compute_ll_()/n;
@@ -139,7 +144,8 @@ Rcpp::List gammaFrailty(
         const double par2 = 1,
         const double par3 = .75,
         int PAIRS_RANGE = 100,
-        const int STEPSIZEFLAG = 1
+        const int STEPSIZEFLAG = 1,
+        unsigned int STRUCT = 0
 ){
 
     // Set up clock monitor to export to R session trough RcppClock
@@ -253,7 +259,7 @@ Rcpp::List gammaFrailty(
                         unsigned int n_jp = DATA(i, jp);
                         double alpha_jp   = theta_t(r + 2 + jp);
 
-                        pair.setup_(j, jp, n_j, n_jp, x_i, beta, alpha_j, alpha_jp, lxi, artanhrho, p);
+                        pair.setup_(j, jp, n_j, n_jp, x_i, beta, alpha_j, alpha_jp, lxi, artanhrho, p, STRUCT);
                         pair.compute_intermediate_( );
                         pair.compute_dintermediate_();
 

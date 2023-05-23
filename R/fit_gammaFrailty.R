@@ -13,6 +13,7 @@ fit_gammaFrailty <- function(
         ),
         UCMINF_CONTROL = list('ctrl' = list(), 'hessian' = 0),
         PAIRS_RANGE = 3,
+        STRUCT = 'AR',
         INIT = NULL,
         ITERATIONS_SUBSET = NULL,
         VERBOSEFLAG = 0
@@ -44,15 +45,19 @@ fit_gammaFrailty <- function(
     if(!(METHOD %in% c('ucminf','GD', 'SGD', 'SCSD'))) stop('Method not available.')
     out$method <- METHOD
 
+    # Check if correlation structure is available
+    if(!(STRUCT %in% c('AR', 'COMPOUND'))) stop('Correlation structure not available.')
+    out$corr_struct <- switch(STRUCT, 'AR' = 0, 'COMPOUND' = 1 )
+
     # Numerical optimisation
     if(METHOD == 'ucminf'){
 
         message('2. Optimising with ucminf...')
         # R wrapper of cpp function for negative composite log-likelihood
-        Rwr_ncl <- function(par){ ncl(par, DATA_LIST$DATA, DATA_LIST$X, PAIRS_RANGE = PAIRS_RANGE)$nll}
+        Rwr_ncl <- function(par){ ncl(par, DATA_LIST$DATA, DATA_LIST$X, PAIRS_RANGE = PAIRS_RANGE, STRUCT = out$corr_struct)$nll}
 
         # R wrapper of cpp function for negative composite score
-        Rwr_ngr <- function(par){ ncl(par, DATA_LIST$DATA, DATA_LIST$X, PAIRS_RANGE = PAIRS_RANGE)$ngradient }
+        Rwr_ngr <- function(par){ ncl(par, DATA_LIST$DATA, DATA_LIST$X, PAIRS_RANGE = PAIRS_RANGE, STRUCT = out$corr_struct)$ngradient }
 
         # list of ucminf args
         args <- list(
@@ -100,6 +105,7 @@ fit_gammaFrailty <- function(
 
         args$METHODFLAG <- dplyr::if_else(METHOD == 'SGD', 1, 2)
         args$PAIRS_RANGE <- PAIRS_RANGE
+        args$STRUCT <- out$corr_struct
 
 
         fit <- do.call(gammaFrailty, args)

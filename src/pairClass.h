@@ -16,6 +16,7 @@ class pair_class{
         double _rho;                // correlation adjacent periods
         double _lxi;
         double _artanhrho;
+        unsigned int _struct;
 
         // Derived helpers
         unsigned int _p;            // number of periods
@@ -44,7 +45,7 @@ class pair_class{
         // SETUP input quantities
         void setup_(unsigned int J,unsigned int JP,unsigned int N_J,unsigned int N_JP,Eigen::VectorXd X,
                     Eigen::VectorXd BETA,double ALPHA_J,double ALPHA_JP,double LXI,double artanhRHO,
-                    unsigned int P);
+                    unsigned int P, unsigned int STRUCT = 0);
 
         // public intermediate computing (only for debugging)
         double compute_Q_(unsigned int ind, bool verboseFLAG = false);
@@ -121,7 +122,8 @@ void pair_class::setup_(
         double ALPHA_JP,
         double LXI,
         double artanhRHO,
-        unsigned int P
+        unsigned int P,
+        unsigned int STRUCT
 ){
     _j = J;
     _jp = JP;
@@ -141,6 +143,7 @@ void pair_class::setup_(
     _p = P;
     _r = BETA.size();
     _d = _p + _r + 2;
+    _struct = STRUCT;
 }
 
 // public intermediate computing (only for debugging)
@@ -261,7 +264,20 @@ void pair_class::compute_m_(){
 
 }
 void pair_class::compute_rho_(){
-    int diff = _j-_jp;
+    int diff;
+    // if(_struct==0){
+    //     diff = _j-_jp;
+    // }elseif(_struct==1){
+    //     diff = 1;
+    // }
+    switch(_struct){
+    case 0:
+        diff = _j-_jp;
+        break;
+    case 1:
+        diff = 1;
+        break;
+    }
     _adiff = abs(diff);
     _rho_jjp = pow(_rho, _adiff);
     _drho_jjp = pow(_rho, _adiff-1)*_adiff;

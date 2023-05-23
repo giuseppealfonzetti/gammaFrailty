@@ -2,18 +2,18 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 #' @export
-pair_wrapper <- function(j, jp, n_j, n_jp, p, alpha_j, alpha_jp, x, beta, lxi, artanhrho, ind = 0L, verboseS = FALSE, verboseSind = FALSE) {
-    .Call(`_gammaFrailty_pair_wrapper`, j, jp, n_j, n_jp, p, alpha_j, alpha_jp, x, beta, lxi, artanhrho, ind, verboseS, verboseSind)
+pair_wrapper <- function(j, jp, n_j, n_jp, p, alpha_j, alpha_jp, x, beta, lxi, artanhrho, ind = 0L, verboseS = FALSE, verboseSind = FALSE, STRUCT = 0L) {
+    .Call(`_gammaFrailty_pair_wrapper`, j, jp, n_j, n_jp, p, alpha_j, alpha_jp, x, beta, lxi, artanhrho, ind, verboseS, verboseSind, STRUCT)
 }
 
 #' @export
-ncl <- function(theta, data, X, printFLAG = FALSE, PAIRS_RANGE = 100L) {
-    .Call(`_gammaFrailty_ncl`, theta, data, X, printFLAG, PAIRS_RANGE)
+ncl <- function(theta, data, X, printFLAG = FALSE, PAIRS_RANGE = 100L, STRUCT = 0L) {
+    .Call(`_gammaFrailty_ncl`, theta, data, X, printFLAG, PAIRS_RANGE, STRUCT)
 }
 
 #' @export
-gammaFrailty <- function(THETA_INIT, DATA, X, MAXT, BURN, STEPSIZE, SCALEVEC, NU, METHODFLAG = 0L, VERBOSEFLAG = FALSE, par1 = 1, par2 = 1, par3 = .75, PAIRS_RANGE = 100L, STEPSIZEFLAG = 1L) {
-    .Call(`_gammaFrailty_gammaFrailty`, THETA_INIT, DATA, X, MAXT, BURN, STEPSIZE, SCALEVEC, NU, METHODFLAG, VERBOSEFLAG, par1, par2, par3, PAIRS_RANGE, STEPSIZEFLAG)
+gammaFrailty <- function(THETA_INIT, DATA, X, MAXT, BURN, STEPSIZE, SCALEVEC, NU, METHODFLAG = 0L, VERBOSEFLAG = FALSE, par1 = 1, par2 = 1, par3 = .75, PAIRS_RANGE = 100L, STEPSIZEFLAG = 1L, STRUCT = 0L) {
+    .Call(`_gammaFrailty_gammaFrailty`, THETA_INIT, DATA, X, MAXT, BURN, STEPSIZE, SCALEVEC, NU, METHODFLAG, VERBOSEFLAG, par1, par2, par3, PAIRS_RANGE, STEPSIZEFLAG, STRUCT)
 }
 
 #' @export

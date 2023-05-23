@@ -3,14 +3,14 @@ library(tidyverse)
 
 #### choose true model ####
 
-p <- 30
+p <- 20
 q <- 4
 
 xi <- 2/q
 rho <- .4
 
 m <- 5
-n <- 1000
+n <- 500
 int <- rnorm(p, 0, .05)#rep(0, p)#
 b <- rnorm(m, 0, .05) #rep(0, m)#
 set.seed(1)
@@ -21,21 +21,23 @@ d <- length(theta)
 
 ##### generate the data ###
 seed <- 3
+structlab <- 'AR'
 dt <- generate_data(
     INTERCEPT = int,
     BETA = b,
     X = X,
     Q = q,
     RHO = rho,
-    SEED = seed
+    SEED = seed,
+    STRUCT = structlab
 )
 
 #### Derivatives #####
 dt
-
+structlabb <- 0
 i <- 13
-j <- 34
-jp <- 18
+j <- 7
+jp <- 2
 n_j <- dt[i + 1, j+1]
 n_j <- 19
 n_jp <- 30
@@ -55,33 +57,34 @@ Rwrapper_obj_ind <- function(par, ind){
 
     obj
 }
-sm <- sapply(0:min(n_j, n_jp), function(x)Rwrapper_obj_ind(repar_theta, x)$Sind)
-sm1 <- sm
-sm[1]+sm[length(sm)]
-sm1[1] <- 0
-cumsum(sm1)
-cumsum(sm)
-Rwrapper_obj_ind(repar_theta, 0)$Sind
-Rwrapper_obj_ind(repar_theta, 1)$Sind
-Rwrapper_obj_ind(repar_theta, 2)$Sind
-Rwrapper_obj_ind(repar_theta, 3)$Sind
-Rwrapper_obj_ind(repar_theta, 4)$Sind
+# sm <- sapply(0:min(n_j, n_jp), function(x)Rwrapper_obj_ind(repar_theta, x)$Sind)
+# sm1 <- sm
+# sm[1]+sm[length(sm)]
+# sm1[1] <- 0
+# cumsum(sm1)
+# cumsum(sm)
+# Rwrapper_obj_ind(repar_theta, 0)$Sind
+# Rwrapper_obj_ind(repar_theta, 1)$Sind
+# Rwrapper_obj_ind(repar_theta, 2)$Sind
+# Rwrapper_obj_ind(repar_theta, 3)$Sind
+# Rwrapper_obj_ind(repar_theta, 4)$Sind
 
 
 
 Rwrapper_obj <- function(par){
     obj <- pair_wrapper(
-        j, jp, n_j, n_jp, p, alpha_j = par[m+2+j+1], alpha_jp= par[m+2+jp+1], x, beta = par[3:(m+2)], lxi = par[1], artanhrho = par[2], verboseS = T
+        j, jp, n_j, n_jp, p, alpha_j = par[m+2+j+1], alpha_jp= par[m+2+jp+1], x, beta = par[3:(m+2)], lxi = par[1], artanhrho = par[2], verboseS = T, STRUCT = structlabb
     )
 
     obj
 }
+structlabb <- 1
 Rwrapper_obj(repar_theta)
 
 
 Rwrapper_obj_fun <- function(par){
     obj <- pair_wrapper(
-        j, jp, n_j, n_jp, p, alpha_j = par[m+2+j+1], alpha_jp= par[m+2+jp+1], x, beta = par[3:(m+2)], lxi = par[1], artanhrho = par[2]
+        j, jp, n_j, n_jp, p, alpha_j = par[m+2+j+1], alpha_jp= par[m+2+jp+1], x, beta = par[3:(m+2)], lxi = par[1], artanhrho = par[2], STRUCT = structlabb
     )
 
     obj$ll
@@ -95,7 +98,7 @@ Rwrapper_obj_fun_stable <- function(par){
 }
 Rwrapper_obj_der <- function(par){
     obj <- pair_wrapper(
-        j, jp, n_j, n_jp, p, alpha_j = par[m+2+j+1], alpha_jp= par[m+2+jp+1], x, beta = par[3:(m+2)], lxi = par[1], artanhrho = par[2]
+        j, jp, n_j, n_jp, p, alpha_j = par[m+2+j+1], alpha_jp= par[m+2+jp+1], x, beta = par[3:(m+2)], lxi = par[1], artanhrho = par[2], STRUCT = structlabb
     )
 
     obj$gradient
@@ -104,21 +107,22 @@ Rwrapper_obj_der <- function(par){
 #### Derivatives cl ####
 Rwrapper_obj_fun(repar_theta)
 Rwrapper_obj_fun_stable(repar_theta)
-
+Rwrapper_obj_fun(repar_theta)
 numDeriv::grad(Rwrapper_obj_fun, repar_theta)
 Rwrapper_obj_der(repar_theta)
-p_range = 2
+p_range = 100
 ncl(theta, dt, X, T)
 Rwrapper_ncl <- function(par){
-    ncl(par, dt, X, PAIRS_RANGE = p_range)$nll
+    ncl(par, dt, X, PAIRS_RANGE = p_range, STRUCT = structlabb)$nll
 }
 
 Rwrapper_ngr <- function(par){
-    ncl(par, dt, X, PAIRS_RANGE = p_range)$ngradient
+    ncl(par, dt, X, PAIRS_RANGE = p_range, STRUCT = structlabb)$ngradient
 }
 
 par_init <- rep(0, length(theta))
 par_init <- repar_theta + runif(length(repar_theta), -1, 1);
+structlabb <- 1
 
 Rwrapper_ncl(par = par_init)
 numDeriv::grad(Rwrapper_ncl, par_init)
@@ -225,10 +229,11 @@ Opt$path_av_theta
 ######## simulation test #######
 set.seed(1); par_init <- repar_theta + runif(length(repar_theta), -1, 1)
 par_init <- rep(0, d)
-range_lag = 1
+range_lag = 100
 Hinv <- sampleH(repar_theta, dt, X, INVERTFLAG = T, PAIRS_RANGE = range_lag)
 scls <- diag(Hinv)
 scls <- rep(.1, d)
+structlab <- 'COMPOUND'
 Opt_u <- fit_gammaFrailty(
     DATA_LIST = list('DATA' = dt, 'X' = X),
     METHOD = 'ucminf',
@@ -237,7 +242,8 @@ Opt_u <- fit_gammaFrailty(
     PAIRS_RANGE = range_lag,
     VERBOSEFLAG= 0,
     INIT = par_init,
-    ITERATIONS_SUBSET = NULL
+    ITERATIONS_SUBSET = NULL,
+    STRUCT = structlab
 )
 library(tidyverse)
 sim_settings <- expand_grid(
@@ -268,7 +274,8 @@ custom_est_fun <- function(MOD, STEPSIZE, SEED, MAXT, BURN){
         PAIRS_RANGE = range_lag,
         VERBOSEFLAG= 0,
         INIT = par_init,
-        ITERATIONS_SUBSET = seq(0, 5000, 100)
+        ITERATIONS_SUBSET = seq(0, 5000, 100),
+        STRUCT = structlab
     )
 
     return(mod_obj)
