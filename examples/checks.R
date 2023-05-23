@@ -7,11 +7,11 @@ p <- 20
 q <- 4
 
 xi <- 2/q
-rho <- .4
+rho <- .7
 
 m <- 5
-n <- 500
-int <- rnorm(p, 0, .05)#rep(0, p)#
+n <- 2000
+int <- rnorm(p, 0, .1)#rep(.5, p)#
 b <- rnorm(m, 0, .05) #rep(0, m)#
 set.seed(1)
 X <- matrix(rbinom(m*n, 1, .5), n, m)#matrix(runif(m*n, 0, 1), n, m)
@@ -21,7 +21,7 @@ d <- length(theta)
 
 ##### generate the data ###
 seed <- 3
-structlab <- 'AR'
+structlab <- 'COMPOUND'
 dt <- generate_data(
     INTERCEPT = int,
     BETA = b,
@@ -229,10 +229,10 @@ Opt$path_av_theta
 ######## simulation test #######
 set.seed(1); par_init <- repar_theta + runif(length(repar_theta), -1, 1)
 par_init <- rep(0, d)
-range_lag = 100
-Hinv <- sampleH(repar_theta, dt, X, INVERTFLAG = T, PAIRS_RANGE = range_lag)
+range_lag = p
+Hinv <- sampleH(repar_theta, dt, X, INVERTFLAG = T, PAIRS_RANGE = range_lag, STRUCT = 1)
 scls <- diag(Hinv)
-scls <- rep(.1, d)
+scls <- rep(1, d)
 structlab <- 'COMPOUND'
 Opt_u <- fit_gammaFrailty(
     DATA_LIST = list('DATA' = dt, 'X' = X),
@@ -248,8 +248,9 @@ Opt_u <- fit_gammaFrailty(
 library(tidyverse)
 sim_settings <- expand_grid(
     mod = c('SGD', 'SCSD'),
-    stepsize = c(1e-4, 5e-4, 1e-3, 5e-3,1e-2, 5e-2, 1e-1, 5e-1, 1),
-    stoc_seed = 1:5,
+    #stepsize = c(1e-4, 5e-4, 1e-3, 5e-3,1e-2, 5e-2, 1e-1, 5e-1, 1),
+    stepsize = c(5e-3,1e-2, 2e-2, 5e-2, 1e-1),
+    stoc_seed = 1:2,
     maxiter = 3000,
     burn = 500
 )
@@ -265,7 +266,7 @@ custom_est_fun <- function(MOD, STEPSIZE, SEED, MAXT, BURN){
         par3 = .501,
         NU = 1,
         SEED = SEED,
-        STEPSIZEFLAG = 1
+        STEPSIZEFLAG = 0
     )
     mod_obj <- fit_gammaFrailty(
         DATA_LIST = list('DATA' = dt, 'X' = X),
@@ -298,39 +299,37 @@ est_tab <- sim_settings %>%
     )
 
 
-# metrics_tab <- est_tab %>%
-#     mutate(
-#         path_av_theta = map(mod_obj, ~get_tidy_path(.x, 'path_av_theta', F)),
-#         path_nll = map(mod_obj, ~get_tidy_path(.x, 'path_nll', F)),
-#         path_grad = map(mod_obj, ~get_tidy_path(.x, 'path_grad', F))
-#     ) %>%
-#     select(-mod_obj) %>%
-#     mutate(
-#         metrics = pmap(
-#             list(path_av_theta, path_nll, path_grad),
-#             function(path_av_theta_, path_nll_, path_grad_){
-#                 path_av_theta_ %>%
-#                     left_join(path_nll_, by = 'iter') %>%
-#                     left_join(path_grad_, by = 'iter')
-#             }
-#         )
-#     ) %>%
-#     select(-c(path_av_theta, path_nll, path_grad)) %>%
-#     unnest(c(metrics)) %>%
-#     mutate(
-#         mse = map_dbl(path_av_theta, ~mean((.x-repar_theta)^2)),
-#         grad_norm = map_dbl(path_grad, ~norm(as.matrix(.x)))
-#     ) %>%
-#     gather(key = 'performance', value = 'val', path_nll, grad_norm, mse)
-#
-# gg <- metrics_tab %>%
-#     ggplot( aes(x = iter, y = val, col = factor(stepsize), group = interaction(mod, stepsize, stoc_seed)))+
-#     geom_line(aes(linetype = mod))+
-#     #geom_hline(yintercept = log(mean((Opt_u$theta-repar_theta)^2)), linetype = 'dashed')+
-#     facet_wrap(vars(performance), scales = 'free')+
-#     theme_bw()+
-#     scale_color_viridis_d()
-# plotly::ggplotly(gg, dynamicTicks = T)
+metrics_tab <- est_tab %>%
+    mutate(
+        path_av_theta = map(mod_obj, ~get_tidy_path(.x, 'path_av_theta', F)),
+        # path_nll = map(mod_obj, ~get_tidy_path(.x, 'path_nll', F)),
+        # path_grad = map(mod_obj, ~get_tidy_path(.x, 'path_grad', F))
+    ) %>%
+    select(-mod_obj) %>%
+    mutate(
+        metrics = pmap(
+            list(path_av_theta),
+            function(path_av_theta_){
+                path_av_theta_
+            }
+        )
+    ) %>%
+    select(-c(path_av_theta)) %>%
+    unnest(c(metrics)) %>%
+    mutate(
+        mse = map_dbl(path_av_theta, ~mean((.x-repar_theta)^2)),
+        mab = map_dbl(path_av_theta, ~mean(abs(.x-repar_theta))),
+    ) %>%
+    gather(key = 'performance', value = 'val',  mse, mab)
+
+gg <- metrics_tab %>%
+    ggplot( aes(x = iter, y = log(val), col = factor(stepsize), group = interaction(mod, stepsize, stoc_seed)))+
+    geom_line(aes(linetype = mod))+
+    #geom_hline(yintercept = log(mean((Opt_u$theta-repar_theta)^2)), linetype = 'dashed')+
+    facet_wrap(vars(performance), scales = 'free')+
+    theme_bw()+
+    scale_color_viridis_d()
+plotly::ggplotly(gg, dynamicTicks = T)
 
 name_par <- function(par){
     if(par == 1)

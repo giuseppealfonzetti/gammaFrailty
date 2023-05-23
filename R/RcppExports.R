@@ -12,8 +12,8 @@ ncl <- function(theta, data, X, printFLAG = FALSE, PAIRS_RANGE = 100L, STRUCT = 
 }
 
 #' @export
-gammaFrailty <- function(THETA_INIT, DATA, X, MAXT, BURN, STEPSIZE, SCALEVEC, NU, METHODFLAG = 0L, VERBOSEFLAG = FALSE, par1 = 1, par2 = 1, par3 = .75, PAIRS_RANGE = 100L, STEPSIZEFLAG = 1L, STRUCT = 0L) {
-    .Call(`_gammaFrailty_gammaFrailty`, THETA_INIT, DATA, X, MAXT, BURN, STEPSIZE, SCALEVEC, NU, METHODFLAG, VERBOSEFLAG, par1, par2, par3, PAIRS_RANGE, STEPSIZEFLAG, STRUCT)
+gammaFrailty <- function(THETA_INIT, DATA, X, STRUCT, MAXT, BURN, STEPSIZE, SCALEVEC, NU, METHODFLAG = 0L, VERBOSEFLAG = FALSE, par1 = 1, par2 = 1, par3 = .75, PAIRS_RANGE = 100L, STEPSIZEFLAG = 1L) {
+    .Call(`_gammaFrailty_gammaFrailty`, THETA_INIT, DATA, X, STRUCT, MAXT, BURN, STEPSIZE, SCALEVEC, NU, METHODFLAG, VERBOSEFLAG, par1, par2, par3, PAIRS_RANGE, STEPSIZEFLAG)
 }
 
 #' @export
@@ -37,17 +37,17 @@ rmultinom_wrapper <- function(prob, classes, batch, K) {
 }
 
 #' @export
-sampleJ <- function(THETA, DATA, X, PRINTFLAG = FALSE, PAIRS_RANGE = 100L) {
-    .Call(`_gammaFrailty_sampleJ`, THETA, DATA, X, PRINTFLAG, PAIRS_RANGE)
+sampleJ <- function(THETA, DATA, X, STRUCT, PRINTFLAG = FALSE, PAIRS_RANGE = 100L) {
+    .Call(`_gammaFrailty_sampleJ`, THETA, DATA, X, STRUCT, PRINTFLAG, PAIRS_RANGE)
 }
 
 #' @export
-sampleH <- function(THETA, DATA, X, PRINTFLAG = FALSE, INVERTFLAG = FALSE, PAIRS_RANGE = 100L) {
-    .Call(`_gammaFrailty_sampleH`, THETA, DATA, X, PRINTFLAG, INVERTFLAG, PAIRS_RANGE)
+sampleH <- function(THETA, DATA, X, STRUCT, PRINTFLAG = FALSE, INVERTFLAG = FALSE, PAIRS_RANGE = 100L) {
+    .Call(`_gammaFrailty_sampleH`, THETA, DATA, X, STRUCT, PRINTFLAG, INVERTFLAG, PAIRS_RANGE)
 }
 
 #' @export
-sampleVar <- function(THETA, DATA, X, NU, METHOD, RANGE, TOTFLAG, PRINTFLAG, PAIRS_RANGE = 100L) {
-    .Call(`_gammaFrailty_sampleVar`, THETA, DATA, X, NU, METHOD, RANGE, TOTFLAG, PRINTFLAG, PAIRS_RANGE)
+sampleVar <- function(THETA, DATA, X, STRUCT, NU, METHOD, RANGE, TOTFLAG, PRINTFLAG, PAIRS_RANGE = 100L) {
+    .Call(`_gammaFrailty_sampleVar`, THETA, DATA, X, STRUCT, NU, METHOD, RANGE, TOTFLAG, PRINTFLAG, PAIRS_RANGE)
 }
 

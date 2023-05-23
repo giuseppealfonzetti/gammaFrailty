@@ -9,6 +9,7 @@ Eigen::MatrixXd sampleJ(
         Eigen::VectorXd THETA,
         Eigen::MatrixXd DATA,
         Eigen::MatrixXd X,
+        unsigned int STRUCT,
         const bool PRINTFLAG = false,
         const int PAIRS_RANGE = 100
 ){
@@ -37,7 +38,7 @@ Eigen::MatrixXd sampleJ(
                 const unsigned int n_jp = DATA(i, jp);
                 const double alpha_jp = THETA(r+2+jp);
 
-                pair.setup_(j, jp, n_j, n_jp, x_i, beta, alpha_j, alpha_jp, lxi, artanhrho, p);
+                pair.setup_(j, jp, n_j, n_jp, x_i, beta, alpha_j, alpha_jp, lxi, artanhrho, p, STRUCT);
                 pair.compute_intermediate_( );
                 pair.compute_dintermediate_();
                 const double ll = pair.compute_ll_()/n;
@@ -63,9 +64,11 @@ Eigen::MatrixXd sampleH(
         Eigen::VectorXd THETA,
         Eigen::MatrixXd DATA,
         Eigen::MatrixXd X,
+        unsigned int STRUCT,
         const bool PRINTFLAG = false,
         const bool INVERTFLAG = false,
         const int PAIRS_RANGE = 100
+
 ){
     unsigned int d = THETA.size();
     unsigned int n = DATA.rows();
@@ -91,7 +94,7 @@ Eigen::MatrixXd sampleH(
                 const unsigned int n_jp = DATA(i, jp);
                 const double alpha_jp = THETA(r+2+jp);
 
-                pair.setup_(j, jp, n_j, n_jp, x_i, beta, alpha_j, alpha_jp, lxi, artanhrho, p);
+                pair.setup_(j, jp, n_j, n_jp, x_i, beta, alpha_j, alpha_jp, lxi, artanhrho, p, STRUCT);
                 pair.compute_intermediate_( );
                 pair.compute_dintermediate_();
                 const double ll = pair.compute_ll_()/n;
@@ -123,6 +126,7 @@ Rcpp::List sampleVar(
         Eigen::VectorXd THETA,
         Eigen::MatrixXd DATA,
         Eigen::MatrixXd X,
+        unsigned int STRUCT,
         const unsigned int NU,
         const unsigned int METHOD,
         const unsigned int RANGE,
@@ -144,10 +148,10 @@ Rcpp::List sampleVar(
     Rcpp::List se;
 
     // Compute inverse of negative hessian
-    Eigen::MatrixXd inv_hmat = sampleH(THETA, DATA, X, PRINTFLAG, true, PAIRS_RANGE);
+    Eigen::MatrixXd inv_hmat = sampleH(THETA, DATA, X, STRUCT, PRINTFLAG, true, PAIRS_RANGE);
 
     if(METHOD == 0){
-        jmat = sampleJ(THETA, DATA, X, PRINTFLAG, PAIRS_RANGE);
+        jmat = sampleJ(THETA, DATA, X, STRUCT, PRINTFLAG, PAIRS_RANGE);
         sandwich = inv_hmat*jmat*inv_hmat;
         tot = sandwich/n;
 
@@ -157,7 +161,7 @@ Rcpp::List sampleVar(
     }
 
     if(METHOD == 1){
-        jmat = sampleJ(THETA, DATA, X, PRINTFLAG, PAIRS_RANGE);
+        jmat = sampleJ(THETA, DATA, X, STRUCT, PRINTFLAG, PAIRS_RANGE);
         sandwich = inv_hmat*jmat*inv_hmat;
         double st_scale = NU*RANGE;
 
@@ -186,7 +190,7 @@ Rcpp::List sampleVar(
 
         if(TOTFLAG) {
 
-            jmat = sampleJ(THETA, DATA, X, PRINTFLAG, PAIRS_RANGE);
+            jmat = sampleJ(THETA, DATA, X, STRUCT, PRINTFLAG, PAIRS_RANGE);
             sandwich = inv_hmat*jmat*inv_hmat;
             var = Rcpp::List::create(
                 Rcpp::Named("var_stoc") = inv_hmat/st_scale,

@@ -13,7 +13,7 @@ fit_gammaFrailty <- function(
         ),
         UCMINF_CONTROL = list('ctrl' = list(), 'hessian' = 0),
         PAIRS_RANGE = 3,
-        STRUCT = 'AR',
+        STRUCT,
         INIT = NULL,
         ITERATIONS_SUBSET = NULL,
         VERBOSEFLAG = 0

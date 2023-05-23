@@ -133,6 +133,7 @@ Rcpp::List gammaFrailty(
         Eigen::VectorXd THETA_INIT,
         Eigen::MatrixXd DATA,
         const Eigen::MatrixXd X,
+        unsigned int STRUCT,
         const unsigned int MAXT,
         const unsigned int BURN,
         const double STEPSIZE,
@@ -144,8 +145,7 @@ Rcpp::List gammaFrailty(
         const double par2 = 1,
         const double par3 = .75,
         int PAIRS_RANGE = 100,
-        const int STEPSIZEFLAG = 1,
-        unsigned int STRUCT = 0
+        const int STEPSIZEFLAG = 1
 ){
 
     // Set up clock monitor to export to R session trough RcppClock
