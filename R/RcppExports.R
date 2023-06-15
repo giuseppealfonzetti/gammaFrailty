@@ -17,6 +17,11 @@ gammaFrailty <- function(THETA_INIT, DATA, X, STRUCT, MAXT, BURN, STEPSIZE, SCAL
 }
 
 #' @export
+gammaFrailty2 <- function(THETA_INIT, DATA, X, STRUCT, MAXT, BURN, STEPSIZE, SCALEVEC, NU, METHODFLAG = 0L, VERBOSEFLAG = FALSE, PAR1 = 1, PAR2 = 1, PAR3 = .75, STEPSIZEFLAG = 1L, SEED = 123L, SAMPLING_WINDOW = 1L) {
+    .Call(`_gammaFrailty_gammaFrailty2`, THETA_INIT, DATA, X, STRUCT, MAXT, BURN, STEPSIZE, SCALEVEC, NU, METHODFLAG, VERBOSEFLAG, PAR1, PAR2, PAR3, STEPSIZEFLAG, SEED, SAMPLING_WINDOW)
+}
+
+#' @export
 zofr_cpp <- function(r) {
     .Call(`_gammaFrailty_zofr_cpp`, r)
 }
@@ -34,6 +39,31 @@ drofz_cpp <- function(z) {
 #'@export
 rmultinom_wrapper <- function(prob, classes, batch, K) {
     .Call(`_gammaFrailty_rmultinom_wrapper`, prob, classes, batch, K)
+}
+
+#'@export
+hyper_sampling <- function(K, N, SEED) {
+    .Call(`_gammaFrailty_hyper_sampling`, K, N, SEED)
+}
+
+#'@export
+unit_sampling <- function(N, SEED) {
+    .Call(`_gammaFrailty_unit_sampling`, N, SEED)
+}
+
+#'@export
+components_given_unit <- function(UNIT, K) {
+    .Call(`_gammaFrailty_components_given_unit`, UNIT, K)
+}
+
+#'@export
+bernoulli_sampling <- function(K, N, PROB) {
+    .Call(`_gammaFrailty_bernoulli_sampling`, K, N, PROB)
+}
+
+#'@export
+index_to_component <- function(P, N, INDEX) {
+    .Call(`_gammaFrailty_index_to_component`, P, N, INDEX)
 }
 
 #' @export

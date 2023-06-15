@@ -3,7 +3,7 @@ library(tidyverse)
 
 #### choose true model ####
 
-p <- 20
+p <- 12
 q <- 4
 
 xi <- 2/q
@@ -160,6 +160,7 @@ Opt_u <- fit_gammaFrailty(
     METHOD = 'ucminf',
     CPP_CONTROL = list(),
     #UCMINF_CONTROL = list('ctrl' = list(invhessian.lt = solve(H0)[lower.tri(H0,diag=TRUE)]), 'hessian' = 0),
+    STRUCT = structlab,
     VERBOSEFLAG= 0,
     INIT = par_init,
     ITERATIONS_SUBSET = NULL
@@ -180,6 +181,7 @@ Opt_sgd <- fit_gammaFrailty(
     DATA_LIST = list('DATA' = dt, 'X' = X),
     METHOD = 'SCSD',
     CPP_CONTROL = ctrl_sgd,
+    STRUCT = structlab,
     PAIRS_RANGE = 3,
     VERBOSEFLAG= 0,
     INIT = par_init,

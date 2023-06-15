@@ -9,7 +9,7 @@ eps <- 2/q
 rho <- .6
 
 m <- 2
-n <- 250
+n <- 100
 int <- rep(log(4), p)#runif(p, 0, 1)
 b <- rep(0, m) #rnorm(m, 0, .5) #
 X <- matrix(rbinom(m*n, 1, .5), n, m)#matrix(runif(m*n, 0, 1), n, m)

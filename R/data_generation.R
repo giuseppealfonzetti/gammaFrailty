@@ -19,8 +19,8 @@ generate_C <- function(RHO, P, STRUCT){
 #'@export
 generate_mgamma <- function(Q, C, SEED){
     set.seed(SEED)
-    #out <- colMeans((mvtnorm::rmvnorm(n = q, sigma = C))^2)
-    out <- colMeans((rmvn(SAMPLE_SIZE = Q, VAR = C))^2)
+    out <- colMeans((mvtnorm::rmvnorm(n = Q, sigma = C))^2)
+    #out <- colMeans((rmvn(SAMPLE_SIZE = Q, VAR = C))^2)
 
     return(out)
 }
@@ -37,8 +37,6 @@ generate_data <- function(INTERCEPT, BETA, X, Q, RHO, SEED, STRUCT){
     n <- nrow(X)
     Z <- purrr::reduce(purrr::map(1:n, ~generate_mgamma(Q, C, SEED = SEED + .x)), rbind); rownames(Z) <- NULL
     u <- t(sapply(1:n, function(i) exp(INTERCEPT+ as.numeric(crossprod(BETA, X[i,])))))
-
-
 
     set.seed(SEED)
     #Z2 <- matrix(rep(Z[1,], n), nrow = n, ncol =  p, byrow = T)

@@ -1,11 +1,10 @@
 #include <Rcpp.h>
-
 #define EIGEN_PERMANENTLY_DISABLE_STUPID_WARNINGS
 #define EIGEN_DONT_PARALLELIZE
-
 #include <RcppEigen.h>
 #include <math.h>
-#include <boost/math/special_functions.hpp>
+#include <random>
+#include "utils.h"
 #include "variance.h"
 #include "pairClass.h"
 
@@ -150,7 +149,7 @@ Rcpp::List gammaFrailty(
 
     // Set up clock monitor to export to R session trough RcppClock
     // Rcpp::Clock clock;
-    // clock.tick("main");
+    // clock.tick("0_main");
 
     // Identify model dimensions
     const unsigned int d = THETA_INIT.size();
@@ -192,6 +191,7 @@ Rcpp::List gammaFrailty(
     Eigen::VectorXd theta_t = THETA_INIT;
     for(unsigned int t = 1; t <= MAXT; t++){
 
+        // clock.tick("1_iteration");
         // check user interruption
         Rcpp::checkUserInterrupt();
         Rcpp::Rcout << "\rIteration:" << t << " ";
@@ -203,6 +203,7 @@ Rcpp::List gammaFrailty(
         Rcpp::NumericMatrix sampling_weights(n,kk);
         std::fill(sampling_weights.begin(), sampling_weights.end(), 0) ;
 
+        // clock.tick("2_sampling");
         double prob;
         switch(METHODFLAG){
         case 0:
@@ -221,6 +222,7 @@ Rcpp::List gammaFrailty(
             }
             break;
         }
+        // clock.tock("2_sampling");
 
         // weights[t] = sampling_weights;
         // Rcpp::Rcout<<"Iteration " << t << ", prob:" << prob << ", weight 1,1:" << sampling_weights(1, 1) << "\n";
@@ -236,6 +238,7 @@ Rcpp::List gammaFrailty(
         double artanhrho = theta_t(1);
         Eigen::VectorXd beta = theta_t.segment(2, r);
 
+        // clock.tick("3_gradient");
         for(unsigned int i = 0; i < n; i++){
 
             // Pair counter (used to index weights)
@@ -265,7 +268,7 @@ Rcpp::List gammaFrailty(
 
                         double ll = pair.compute_ll_();
                         nll -= ll;
-                        ngradient_t -= weight * pair.compute_gradient_();
+                        ngradient_t -=  pair.compute_gradient_();
                     }
 
 
@@ -273,12 +276,14 @@ Rcpp::List gammaFrailty(
                 }
             }
         }
+        // clock.tock("3_gradient");
 
         nll *= scale;
         ngradient_t *= scale;
         ///////////////////////////
         /*    PARAMETERS UPDATE  */
         ///////////////////////////
+        // clock.tick("4_update");
         double stepsize_t = STEPSIZE;
         switch(STEPSIZEFLAG){
         case 0:
@@ -289,6 +294,7 @@ Rcpp::List gammaFrailty(
             break;
         }
         theta_t -= Eigen::VectorXd(stepsize_t * SCALEVEC.array() * ngradient_t.array());
+        // clock.tock("4_update");
 
         ///////////////////////////////
         /* STORE ITERATION QUANTITIES  */
@@ -304,10 +310,11 @@ Rcpp::List gammaFrailty(
             path_av_theta.row(t) = ( (t - BURN - 1) * path_av_theta.row(t - 1) + path_theta.row(t) ) / (t - BURN);
         }
 
+        // clock.tock("1_iteration");
 
     }
 
-    // clock.tock("main");
+    // clock.tock("0_main");
     // clock.stop("clock");
 
     Rcpp::List output = Rcpp::List::create(
@@ -324,8 +331,528 @@ Rcpp::List gammaFrailty(
     return output;
 }
 
+//' @export
+// [[Rcpp::export]]
+Rcpp::List gammaFrailty2(
+        Eigen::VectorXd THETA_INIT,
+        Eigen::MatrixXd DATA,
+        const Eigen::MatrixXd X,
+        unsigned int STRUCT,
+        const unsigned int MAXT,
+        const unsigned int BURN,
+        const double STEPSIZE,
+        Eigen::VectorXd SCALEVEC,
+        const double NU,
+        const int METHODFLAG = 0,
+        const bool VERBOSEFLAG = false,
+        const double PAR1 = 1,
+        const double PAR2 = 1,
+        const double PAR3 = .75,
+        const int STEPSIZEFLAG = 1,
+        const unsigned int SEED = 123,
+        const unsigned int SAMPLING_WINDOW = 1
+){
+
+    // Identify model dimensions
+    const unsigned int d = THETA_INIT.size();
+    const unsigned int n = DATA.rows();
+    const unsigned int p = DATA.cols();
+    const unsigned int r = X.cols();
+    // PAIRS_RANGE = std::min(int(p)-1, PAIRS_RANGE);
+    const unsigned int kk = p*(p-1)/2;
+    // const unsigned int kk = (p-PAIRS_RANGE)*PAIRS_RANGE+PAIRS_RANGE*(PAIRS_RANGE)/2;
+
+
+    // Initialize storage for iterations quantities
+    Eigen::MatrixXd path_theta    = Eigen::MatrixXd::Zero(MAXT + 1, d); path_theta.row(0)    = THETA_INIT;
+    Eigen::MatrixXd path_av_theta = Eigen::MatrixXd::Zero(MAXT + 1, d); path_av_theta.row(0) = THETA_INIT;
+    Eigen::MatrixXd path_grad     = Eigen::MatrixXd::Zero(MAXT,     d);
+    std::vector<double> path_nll;
+
+
+
+
+    // Compute scaling constant
+    double scale;
+    switch(METHODFLAG){
+    case 0:
+        scale = 1/static_cast<double>(n) ;
+        break;
+    case 1:
+        scale = 1/((p-1)*static_cast<double>(NU)) ;
+        break;
+    case 2:
+        scale = 1/((p-1)*static_cast<double>(NU)) ;
+        break;
+    case 3:
+        scale = 1/((p-1)*static_cast<double>(NU)) ;
+        break;
+    case 4:
+        scale = 1/((p-1)*static_cast<double>(NU)) ;
+        break;
+    case 5:
+        scale = 1/((p-1)*static_cast<double>(NU)) ;
+        break;
+    }
+
+
+    // Initialise generic pair-object: it will compute pairwise quantities along the optimisation
+    pair_class pair;
+    std::vector<int> outloop_pool;
+    Eigen::VectorXd theta_t = THETA_INIT;
+    unsigned int sampling_window_iterator = 0;
+
+    for(unsigned int t = 1; t <= MAXT; t++){
+        // check user interruption
+        Rcpp::checkUserInterrupt();
+        Rcpp::Rcout << "\r Iter:" << t << " ";
+        std::vector<int> pool_t;
+
+        /////////////////////
+        // SAMPLING SCHEME //
+        /////////////////////
+
+        switch(METHODFLAG){
+        case 0:
+            {pool_t.resize(n*kk);
+                std::iota (std::begin(pool_t), std::end(pool_t), 0);
+                break;}
+        case 1:
+            {std::vector<int> pool_units = unit_sampling(n, SEED + t);
+                for(unsigned int i = 0; i < NU; i++){
+                    std::vector<int> tmp = components_given_unit(int(pool_units[i]), kk);
+                    pool_t.insert(pool_t.end(), std::begin(tmp), std::end(tmp));
+                }
+            break;}
+        case 2:
+            {double prob = static_cast<double>(NU)/static_cast<double>(n);
+                // need for external seeding
+                pool_t = bernoulli_sampling(kk, n, prob);
+                break;}
+        case 3:
+            {std::vector<int> tmp = hyper_sampling(kk, n, SEED + t);
+                pool_t = {tmp.begin(), tmp.begin()+int(NU*kk)};
+                break;}
+        case 4:
+            {
+                if(sampling_window_iterator == 0){
+                outloop_pool = unit_sampling(n, SEED + t);
+            }
+                for(unsigned int i = 0; i < NU; i++){
+                    int tmp_ind = sampling_window_iterator*NU + i;
+                    std::vector<int> tmp = components_given_unit(int(outloop_pool[tmp_ind]), kk);
+                    pool_t.insert(pool_t.end(), std::begin(tmp), std::end(tmp));
+                }
+                sampling_window_iterator++;
+                if(sampling_window_iterator==SAMPLING_WINDOW) sampling_window_iterator = 0;
+                break;
+            }
+        case 5:
+            {
+                if(sampling_window_iterator == 0){
+                outloop_pool = hyper_sampling(kk, n, SEED + t);
+            }
+
+                int tmp_ind = sampling_window_iterator*NU*kk;
+                pool_t = {outloop_pool.begin() + tmp_ind, outloop_pool.begin() + tmp_ind + int(NU * kk)};
+
+                sampling_window_iterator++;
+                if(sampling_window_iterator==SAMPLING_WINDOW) sampling_window_iterator = 0;
+                break;
+            }
+
+        }
+
+        //initialize iteration quantities
+        Eigen::VectorXd ngradient_t = Eigen::VectorXd::Zero(d);
+        double ncl = 0;
+
+        ///////////////////////////
+        /* GRADIENT COMPUTATION  */
+        ///////////////////////////
+        double lxi  = theta_t(0);
+        double artanhrho = theta_t(1);
+        Eigen::VectorXd beta = theta_t.segment(2, r);
+
+        for(unsigned int index = 0; index < pool_t.size(); index++){
+
+            // Read triplet (i, j, j')
+            int i, j, jp;
+            std::vector<int> component = index_to_component(p, n, int(pool_t[index]));
+            i = component[0]; j = component[1]; jp = component[2];
+
+            // Rcpp::Rcout << " (" << i << ", " << j << ", " << jp << ")";
+            // Read unit i covariates
+            Eigen::VectorXd x_i = X.row(i);
+
+            // Read quantities dependent on j
+            unsigned int n_j = DATA(i, j);
+            double alpha_j   = theta_t(r + 2 + j);
+
+            // Read quantities dependent on j'
+            unsigned int n_jp = DATA(i, jp);
+            double alpha_jp   = theta_t(r + 2 + jp);
+
+            // Rcpp::Rcout << "=> (" << n_j << ", " << n_jp << ", " << alpha_j << ", " << alpha_jp << ")";
+            // Computations
+            pair.setup_(j, jp, n_j, n_jp, x_i, beta, alpha_j, alpha_jp, lxi, artanhrho, p, 1);
+            pair.compute_intermediate_( );
+            pair.compute_dintermediate_();
+
+            double ll = pair.compute_ll_();
+            ncl -= ll;
+            ngradient_t -=  pair.compute_gradient_();
+
+        }
+
+        ncl *= scale;
+        ngradient_t *= scale;
+
+        ///////////////////////////
+        /*    PARAMETERS UPDATE  */
+        ///////////////////////////
+        double stepsize_t = STEPSIZE;
+        switch(STEPSIZEFLAG){
+        case 0:
+            stepsize_t *= pow(t, -PAR3);
+            break;
+        case 1:
+            stepsize_t *= PAR1 * pow(1 + PAR2*STEPSIZE*t, -PAR3);
+            break;
+        }
+        theta_t -= Eigen::VectorXd(stepsize_t * SCALEVEC.array() * ngradient_t.array());
+
+        /////////////////////////////////
+        /* STORE ITERATION QUANTITIES  */
+        /////////////////////////////////
+        path_theta.row(t ) = theta_t;
+        path_grad.row(t-1) = ngradient_t;
+        path_nll.push_back(ncl);
+
+        // averaging after burn-in
+        if(t <= BURN){
+            path_av_theta.row(t) = path_theta.row(t);
+        }else{
+            path_av_theta.row(t) = ( (t - BURN - 1) * path_av_theta.row(t - 1) + path_theta.row(t) ) / (t - BURN);
+        }
+
+    }
+    Rcpp::List output = Rcpp::List::create(
+        Rcpp::Named("path_theta") = path_theta,
+        Rcpp::Named("path_av_theta") = path_av_theta,
+        Rcpp::Named("path_grad") = path_grad,
+        Rcpp::Named("path_nll") = path_nll,
+        Rcpp::Named("scale") = scale,
+        Rcpp::Named("n") = n,
+        Rcpp::Named("methodflag") = METHODFLAG
+    );
+
+    return output;
+}
 
 
 
 
 
+
+
+// //' @export
+// // [[Rcpp::export]]
+// Rcpp::List gammaFrailty2(
+//         Eigen::VectorXd THETA_INIT,
+//         Eigen::MatrixXd DATA,
+//         const Eigen::MatrixXd X,
+//         const Eigen::MatrixXd WEIGHTS,
+//         unsigned int STRUCT,
+//         const unsigned int MAXT,
+//         const unsigned int BURN,
+//         const double STEPSIZE,
+//         Eigen::VectorXd SCALEVEC,
+//         const double NU,
+//         const int METHODFLAG = 0,
+//         const bool VERBOSEFLAG = false,
+//         const double PAR1 = 1,
+//         const double PAR2 = 1,
+//         const double PAR3 = .75,
+//         const int STEPSIZEFLAG = 1
+// ){
+//
+//              // Set up clock monitor to export to R session trough RcppClock
+//              // Rcpp::Clock clock;
+//              // clock.tick("main");
+//
+//              // Identify model dimensions
+//              const unsigned int d = THETA_INIT.size();
+//              const unsigned int n = DATA.rows();
+//              const unsigned int p = DATA.cols();
+//              const unsigned int r = X.cols();
+//              // PAIRS_RANGE = std::min(int(p)-1, PAIRS_RANGE);
+//              // // const unsigned int kk = p*(p-1)/2;
+//              // const unsigned int kk = (p-PAIRS_RANGE)*PAIRS_RANGE+PAIRS_RANGE*(PAIRS_RANGE)/2;
+//
+//
+//              // Initialize storage for iterations quantities
+//              Eigen::MatrixXd path_theta    = Eigen::MatrixXd::Zero(MAXT + 1, d); path_theta.row(0)    = THETA_INIT;
+//              Eigen::MatrixXd path_av_theta = Eigen::MatrixXd::Zero(MAXT + 1, d); path_av_theta.row(0) = THETA_INIT;
+//              Eigen::MatrixXd path_grad     = Eigen::MatrixXd::Zero(MAXT,     d);
+//              std::vector<double> path_nll;
+//
+//              // std::vector<Rcpp::NumericMatrix> weights(MAXT+1);
+//
+//              // Initialise generic pair-object: it will compute pairwise quantities along the optimisation
+//              pair_class pair;
+//
+//              // Compute scaling constant
+//              double scale;
+//              switch(METHODFLAG){
+//              case 0:
+//                  scale = 1/static_cast<double>(n) ;
+//                  break;
+//              case 1:
+//                  scale = 1/static_cast<double>(NU);
+//                  break;
+//              case 2:
+//                  scale = 1/static_cast<double>(NU);
+//                  break;
+//              }
+//
+//              unsigned int iter = 1;
+//              Eigen::VectorXd theta_t = THETA_INIT;
+//              Eigen::VectorXd ngradient_t = Eigen::VectorXd::Zero(d);
+//
+//              // Identify initialisation points for parameters independent of pairs
+//              double lxi  = theta_t(0);
+//              double artanhrho = theta_t(1);
+//              Eigen::VectorXd beta = theta_t.segment(2, r);
+//              int totpairs = WEIGHTS.rows();
+//
+//              for(int row = 0; row < totpairs; row++){
+//
+//                  // Identify iteration
+//                  unsigned int last_iter = iter;
+//                  unsigned int iter = WEIGHTS(row, 3);
+//                  unsigned int next_iter;
+//                  if(row!= (totpairs-1)){
+//                      next_iter = WEIGHTS(row+1, 3);
+//                  }else{next_iter = MAXT+1;}
+//
+//                  // When a new iteration starts, update parameter independent of pairs
+//                  // and reset the gradient object
+//                  if(iter != last_iter){
+//                      lxi  = theta_t(0);
+//                      artanhrho = theta_t(1);
+//                      beta = theta_t.segment(2, r);
+//                      ngradient_t = Eigen::VectorXd::Zero(d);
+//                      }
+//
+//                  // Identify pair
+//                  unsigned int i = WEIGHTS(row, 0);
+//                  unsigned int j = WEIGHTS(row, 1);
+//                  unsigned int jp = WEIGHTS(row, 2);
+//
+//                  // Read covariates dependent on i
+//                  Eigen::VectorXd x_i = X.row(i);
+//
+//                  // Read quantities dependent on j
+//                  unsigned int n_j = DATA(i, j);
+//                  double alpha_j   = theta_t(r + 2 + j);
+//
+//                  // Read quantities dependent on j'
+//                  unsigned int n_jp = DATA(i, jp);
+//                  double alpha_jp   = theta_t(r + 2 + jp);
+//
+//                  // Compute pair contribution
+//                  pair.setup_(j, jp, n_j, n_jp, x_i, beta, alpha_j, alpha_jp, lxi, artanhrho, p, STRUCT);
+//                  pair.compute_intermediate_( );
+//                  pair.compute_dintermediate_();
+//                  ngradient_t -= pair.compute_gradient_();
+//
+//                  // When the iteration ends, update the parameters and store iteration quantities
+//                  if(iter != next_iter){
+//
+//                      // Update parameter vector
+//                      ngradient_t *= scale;
+//                      double stepsize_t = STEPSIZE;
+//                      switch(STEPSIZEFLAG){
+//                      case 0:
+//                          stepsize_t *= pow(iter, -PAR3);
+//                          break;
+//                      case 1:
+//                          stepsize_t *= PAR1 * pow(1 + PAR2*STEPSIZE*iter, -PAR3);
+//                          break;
+//                      }
+//                      theta_t -= Eigen::VectorXd(stepsize_t * SCALEVEC.array() * ngradient_t.array());
+//
+//                      // Store iteration quantities
+//                      path_theta.row(iter) = theta_t;
+//                      path_grad.row(iter-1) = ngradient_t;
+//                      // path_nll.push_back(nll);
+//
+//                      // averaging after burn-size
+//                      if(iter <= BURN){
+//                          path_av_theta.row(iter) = path_theta.row(iter);
+//                      }else{
+//                          path_av_theta.row(iter) = ( (iter - BURN - 1) * path_av_theta.row(iter - 1) + path_theta.row(iter) ) / (iter - BURN);
+//                      }
+//                  }
+//
+//
+//              }
+//              // //Rcpp::Rcout << "Method:" << METHODFLAG << "\n ";
+//              // unsigned int k_counter = 0;
+//              // for(unsigned int t = 1; t <= MAXT; t++){
+//              //
+//              //     // check user interruption
+//              //     Rcpp::checkUserInterrupt();
+//              //     Rcpp::Rcout << "\rIteration:" << t << " ";
+//              //
+//              //     double nll = 0;
+//              //     /////////////////////
+//              //     // SAMPLING STEP   //
+//              //     /////////////////////
+//              //     Rcpp::NumericMatrix sampling_weights(n,kk);
+//              //     std::fill(sampling_weights.begin(), sampling_weights.end(), 0) ;
+//              //
+//              //     double prob;
+//              //     switch(METHODFLAG){
+//              //     case 0:
+//              //         std::fill( sampling_weights.begin(), sampling_weights.end(), 1);
+//              //         break;
+//              //     case 1:
+//              //         prob = 1/static_cast<double>(n);
+//              //         sampling_weights = rmultinom_wrapper(prob, n, NU, kk);
+//              //         break;
+//              //     case 2:
+//              //         prob = static_cast<double>(NU)/static_cast<double>(n);
+//              //         for(unsigned int i = 0; i < n; i++){
+//              //             for(unsigned int k = 0; k < kk; k++){
+//              //                 if(R::runif(0,1) < prob ) sampling_weights(i, k) = 1;
+//              //             }
+//              //         }
+//              //         break;
+//              //     }
+//              //
+//              //     // weights[t] = sampling_weights;
+//              //     // Rcpp::Rcout<<"Iteration " << t << ", prob:" << prob << ", weight 1,1:" << sampling_weights(1, 1) << "\n";
+//              //
+//              //     //////////////////
+//              //     /*   GRADIENT   */
+//              //     //////////////////
+//              //     Eigen::VectorXd ngradient_t = Eigen::VectorXd::Zero(d);
+//              //
+//              //     //if(theta_t(0)>2) theta_t(0) = 2;
+//              //     // Read parameter invariant to next loops
+//              //     double lxi  = theta_t(0);
+//              //     double artanhrho = theta_t(1);
+//              //     Eigen::VectorXd beta = theta_t.segment(2, r);
+//              //
+//              //     for(unsigned int i = 0; i < n; i++){
+//              //
+//              //         // Pair counter (used to index weights)
+//              //         unsigned int k_counter = 0;
+//              //
+//              //         // Read unit i covariates
+//              //         Eigen::VectorXd x_i = X.row(i);
+//              //
+//              //         for(unsigned int j = 1; j < p; j++){
+//              //
+//              //             // Read quantities dependent on j
+//              //             unsigned int n_j = DATA(i, j);
+//              //             double alpha_j   = theta_t(r + 2 + j);
+//              //
+//              //             for( unsigned int jp = std::max(0, int(j-PAIRS_RANGE)); jp < j; jp++){
+//              //
+//              //                 unsigned int weight = sampling_weights(i, k_counter);
+//              //
+//              //                 if(weight != 0){
+//              //                     // Read quantities dependent on j'
+//              //                     unsigned int n_jp = DATA(i, jp);
+//              //                     double alpha_jp   = theta_t(r + 2 + jp);
+//              //
+//              //                     pair.setup_(j, jp, n_j, n_jp, x_i, beta, alpha_j, alpha_jp, lxi, artanhrho, p, STRUCT);
+//              //                     pair.compute_intermediate_( );
+//              //                     pair.compute_dintermediate_();
+//              //
+//              //                     double ll = pair.compute_ll_();
+//              //                     nll -= ll;
+//              //                     ngradient_t -= weight * pair.compute_gradient_();
+//              //                 }
+//              //
+//              //
+//              //                 k_counter ++;
+//              //             }
+//              //         }
+//              //     }
+//              //
+//              //     nll *= scale;
+//              //     ngradient_t *= scale;
+//              //     ///////////////////////////
+//              //     /*    PARAMETERS UPDATE  */
+//              //     ///////////////////////////
+//              //     double stepsize_t = STEPSIZE;
+//              //     switch(STEPSIZEFLAG){
+//              //     case 0:
+//              //         stepsize_t *= pow(t, -par3);
+//              //         break;
+//              //     case 1:
+//              //         stepsize_t *= par1 * pow(1 + par2*STEPSIZE*t, -par3);
+//              //         break;
+//              //     }
+//              //     theta_t -= Eigen::VectorXd(stepsize_t * SCALEVEC.array() * ngradient_t.array());
+//              //
+//              //     ///////////////////////////////
+//              //     /* STORE ITERATION QUANTITIES  */
+//              //     /////////////////////////////////
+//              //     path_theta.row(t) = theta_t;
+//              //     path_grad.row(t-1) = ngradient_t;
+//              //     path_nll.push_back(nll);
+//              //
+//              //     // averaging after burnsize
+//              //     if(t <= BURN){
+//              //         path_av_theta.row(t) = path_theta.row(t);
+//              //     }else{
+//              //         path_av_theta.row(t) = ( (t - BURN - 1) * path_av_theta.row(t - 1) + path_theta.row(t) ) / (t - BURN);
+//              //     }
+//              //
+//              //
+//              // }
+//
+//              // clock.tock("main");
+//              // clock.stop("clock");
+//
+//              Rcpp::List output = Rcpp::List::create(
+//                  Rcpp::Named("path_theta") = path_theta,
+//                  Rcpp::Named("path_av_theta") = path_av_theta,
+//                  Rcpp::Named("path_grad") = path_grad,
+//                  Rcpp::Named("path_nll") = path_nll,
+//                  Rcpp::Named("scale") = scale,
+//                  Rcpp::Named("n") = n,
+//                  // Rcpp::Named("weights") = weights,
+//                  Rcpp::Named("methodflag") = METHODFLAG
+//              );
+//
+//              return output;
+//          }
+//
+//
+// //' @export
+// // [[Rcpp::export]]
+// Rcpp::List get_triplet(
+//     int INDEX,
+//     int N,
+//     int P
+// ){
+//     int i = INDEX % N;
+//     int j = INDEX / (N*(P-1));
+//     int jp = (INDEX - (N*P*j)) / N +j+1;
+//
+//     Rcpp::List output = Rcpp::List::create(
+//         Rcpp::Named("i") = i,
+//         Rcpp::Named("j") = j,
+//         Rcpp::Named("jp") = jp
+//     );
+//
+//     return output;
+//
+// }
+//

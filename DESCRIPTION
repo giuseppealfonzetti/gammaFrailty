@@ -15,6 +15,7 @@ RoxygenNote: 7.2.3
 LinkingTo: 
     Rcpp,
     RcppEigen,
+    RcppClock,
     BH
 Imports: 
     Rcpp

@@ -89,3 +89,34 @@ get_tidy_path <- function(MOD_OBJ, PATH_LAB, USEREPARTOPAR){
 
     return(out)
 }
+
+#'@export
+sample_weights <- function(PROB, N, TRIPLETS, SEED, ITER){
+    set.seed(SEED + ITER)
+    sel <- NULL
+    while (purrr::is_empty(sel)) {
+        sel <- which(rbinom(nrow(TRIPLETS), 1, prob = PROB)==1)
+        out <- TRIPLETS[sel,]
+        if(is.vector(out)) out <- matrix(out, 1, 3)
+        out <- cbind(out, t = ITER)
+    }
+
+    return(out)
+}
+
+#'@export
+sample_optimisation_weights <- function(N, P, MAXITER, PAIRS_RANGE = 100, SEED = 123){
+    k_ref <- expand_grid(j = 0:(P-1), jp = 0:(P-1)) %>%
+        filter(((jp - j) <= PAIRS_RANGE) & ((jp - j)>0))
+    K <- nrow(k_ref)
+    message(paste0('Dimension of pairs pool: ', K, ' x ', N))
+    triplets_ref <- k_ref %>%
+        expand_grid(i=0:(N-1)) %>%
+        select(i, j, jp) %>%
+        as.matrix()
+
+    w_list <- purrr::map(1:MAXITER, ~sample_weight(PROB = 1/n, N = n, TRIPLETS = triplets_ref, SEED = SEED, ITER = .x))
+    out <- purrr::reduce(w_list, rbind)
+
+    return(out)
+}
