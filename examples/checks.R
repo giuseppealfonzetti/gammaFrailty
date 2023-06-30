@@ -3,14 +3,14 @@ library(tidyverse)
 
 #### choose true model ####
 
-p <- 12
+p <- 20
 q <- 4
 
 xi <- 2/q
-rho <- .7
+rho <- .9
 
-m <- 5
-n <- 2000
+m <- 0
+n <- 2500
 int <- rnorm(p, 0, .1)#rep(.5, p)#
 b <- rnorm(m, 0, .05) #rep(0, m)#
 set.seed(1)
@@ -20,7 +20,7 @@ repar_theta <- partorepar(theta)
 d <- length(theta)
 
 ##### generate the data ###
-seed <- 3
+seed <- 5
 structlab <- 'COMPOUND'
 dt <- generate_data(
     INTERCEPT = int,

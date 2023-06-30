@@ -1,6 +1,5 @@
 #ifndef utils_H
 #define utils_H
-#include <random>
 
 // Fisher transformation for correlation
 //' @export
